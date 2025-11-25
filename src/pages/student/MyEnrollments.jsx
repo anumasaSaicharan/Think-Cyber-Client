@@ -2,7 +2,6 @@ import { useContext, useEffect, useState } from 'react'
 import { AppContextProvider } from '../../context/AppContext'
 import axios from 'axios'
 import { Line } from 'rc-progress';
-import Footer from '../../components/student/Footer';
 import { toast } from 'react-toastify';
 
 const MyEnrollments = () => {
@@ -94,8 +93,6 @@ const MyEnrollments = () => {
                 </table>
 
             </div>
-
-            <Footer />
 
         </>
     )

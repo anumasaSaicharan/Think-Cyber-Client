@@ -1,87 +1,136 @@
 
-import React, { useEffect, useState } from 'react';
-import { homepageService } from '../../services/apiService';
-import Loading from '../../components/student/Loading';
-import Footer from '../../components/student/Footer';
+import React, { useState } from 'react';
 import { assets } from '../../assets/assets';
 
 const Contact = () => {
-  const [contact, setContact] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    message: ''
+  });
 
-  useEffect(() => {
-    const fetchContact = async () => {
-      try {
-        setLoading(true);
-        const resp = await homepageService.getHomepageByLanguage('en');
-        setContact(resp.data.contact);
-      } catch (err) {
-        setError('Failed to load contact info');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchContact();
-  }, []);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Handle form submission
+    console.log('Form submitted:', formData);
+  };
 
-  if (loading) return <Loading />;
-  if (error) return <div className="text-red-500 p-8">{error}</div>;
-  if (!contact) return null;
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+  };
 
   return (
-    <>
-      <div className="w-full min-h-[70vh] bg-white flex flex-col items-center justify-center py-10 px-2 md:px-0">
-        <div className="w-full max-w-6xl">
-          <h1 className="text-3xl md:text-4xl font-bold mb-8 mt-2 md:mt-8">We're here to help!</h1>
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Contact Address */}
-            <div className="flex-1 bg-white rounded-lg shadow p-6 min-w-[260px] max-w-md border border-gray-100">
-              <h2 className="text-lg font-bold text-blue-700 mb-4">Contact Address</h2>
-              <div className="mb-2 text-gray-700 flex flex-col gap-3">
-                <span className="flex items-center gap-3">
-                  <img src={assets.AddressIcon} alt="Location" className="w-7 h-7 text-blue-500" />
-                  <span className="ml-1 text-lg font-medium">{contact.address}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <img src={assets.PhoneIcon} alt="Phone" className="w-7 h-7 text-blue-500" />
-                  <span className="ml-1 text-lg font-medium">{contact.phone}</span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <img src={assets.EmailIcon} alt="Email" className="w-7 h-7 text-blue-500" />
-                  <span className="ml-1 text-lg font-medium">{contact.email}</span>
-                </span>
-              </div>
+    <div className="relative w-full min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 overflow-hidden">
+      {/* Background illustration - right bottom corner */}
+      <div className="absolute right-0 bottom-0 w-1/4 md:w-1/5 lg:w-1/6 h-auto pointer-events-none">
+        <img
+          src={assets.bgLayer}
+          alt="Background"
+          className="w-full h-full object-contain"
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
+        />
+      </div>
+
+      {/* Content Container */}
+      <div className="relative z-10 w-full max-w-6xl px-4 sm:px-6 lg:px-8 py-12 md:py-16 lg:py-20">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-3xl md:text-4xl px-10 font-bold text-gray-900">
+            We're here to help!
+          </h1>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="overflow-hidden">
+          <div className="flex flex-col md:flex-row">
+            {/* Left Side - Illustration */}
+            <div className="flex items-start md:w-2/5 lg:w-1/3 p-0 md:p-0 bg-gradient-to-br from-blue-50 to-white">
+              <img
+                src={assets.contactUsLogo}
+                alt="Contact Us"
+                className="w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 object-contain"
+                onError={(e) => {
+                  e.target.src = assets.contactusBanner;
+                }}
+              />
             </div>
-            {/* Form and Illustration in a single card */}
-            <div className="flex-1 bg-white rounded-lg shadow p-6 border border-gray-100 flex flex-col md:flex-row gap-6">
-              {/* Illustration left, align to top */}
-              <div className="hidden md:flex w-1/3 self-start">
-                <img src={assets.contactusBanner} alt="Contact Illustration" className="w-full h-full object-contain" />
-              </div>
-              {/* Form right */}
-              <div className="w-full md:w-2/3">
-                <h2 className="text-lg font-bold text-blue-700 mb-2">Let's talk</h2>
-                <p className="text-gray-600 text-sm mb-4">Please fill out the form and we will get back to you promptly.</p>
-                <form className="w-full flex flex-col gap-4 mt-2">
-                  <label className="text-sm font-semibold text-gray-700 mb-1">Your Name
-                    <input type="text" placeholder="Name" className="mt-1 w-full border border-gray-200 rounded-lg px-4 py-3 text-base bg-[#f8fafc] focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" />
+
+            {/* Right Side - Form */}
+            <div className="flex-1 p-8 md:p-12 max-w-md">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+                Let's talk
+              </h2>
+              <p className="text-gray-600 text-sm md:text-base mb-6">
+                Please fill out the form and we will get back to you promptly.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Your Name */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Your Name
                   </label>
-                  <label className="text-sm font-semibold text-gray-700 mb-1">Email Address
-                    <input type="email" placeholder="Example@gmail.com" className="mt-1 w-full border border-gray-200 rounded-lg px-4 py-3 text-base bg-[#f8fafc] focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition" />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Name"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                    required
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Email Address
                   </label>
-                  <label className="text-sm font-semibold text-gray-700 mb-1">Message
-                    <textarea placeholder="Type here" rows={3} className="mt-1 w-full border border-gray-200 rounded-lg px-4 py-3 text-base bg-[#f8fafc] focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition resize-none" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Example@gmail.com"
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition"
+                    required
+                  />
+                </div>
+
+                {/* Message */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Message
                   </label>
-                  <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg px-4 py-3 font-semibold text-base mt-2 shadow hover:from-blue-600 hover:to-blue-700 transition-colors">Send Message</button>
-                </form>
-              </div>
+                  <textarea
+                    name="message"
+                    value={formData.message}
+                    onChange={handleChange}
+                    placeholder="Type here"
+                    rows={3}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm bg-gray-50 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition resize-none"
+                    required
+                  />
+                </div>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  Send Message
+                </button>
+              </form>
             </div>
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 };
 

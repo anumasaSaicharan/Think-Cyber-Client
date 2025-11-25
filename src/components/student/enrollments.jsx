@@ -1,40 +1,71 @@
 import React, { useContext, useState, useRef, useEffect } from 'react'; 
 import { AppContext } from '../../context/AppContext';
-import apiClient from '../../services/apiService';
-import API_ENDPOINTS from '../../constants/urlConstants';
+import { topicService } from '../../services/apiService';
 import { assets } from '../../assets/assets';
 import { useNavigate } from 'react-router-dom';
 
 export default function Enrollments() {
   const { userData } = useContext(AppContext); 
-  const [enrollments, setEnrollments] = useState([]); // Placeholder for enrollment items
+  const [enrollments, setEnrollments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  
   useEffect(() => {
-    // Fetch user's enrollments from backend API
     const fetchEnrollments = async () => {
-        debugger;
+      debugger;
+        if (!userData) {
+            setLoading(false);
+            return;
+        }
+        
+        if (!userData.id) {
+            setLoading(false);
+            setError('User ID not found');
+            return;
+        }
+        
         try {
-            debugger;
-            const response = await apiClient.get(API_ENDPOINTS.USER_ENROLLS(userData.id)); 
+            setLoading(true);
+            setError(null); 
+            const response = await topicService.getUserEnrolledTopics(userData.id); 
             const enrollmentsWithIcons = (response || []).map((topic, index) => ({
               ...topic,
               icon: topic.icon || (index % 3 === 0
                 ? assets.basic_security_icon
                 : index % 3 === 1
                   ? assets.business_owner_icon
-                  : assets.follower_icon)
+                  : assets.follower_icon),
+              borderColor: index % 3 === 0 ? "border-blue-600" : 
+                          index % 3 === 1 ? "border-[#146DA5]" : "border-[#039198]",
+              textColor: index % 3 === 0 ? "text-blue-600" : 
+                        index % 3 === 1 ? "text-[#146DA5]" : "text-[#039198]"
             }));
             setEnrollments(enrollmentsWithIcons); 
+            setError(null);
         } catch (error) {
             console.error('Error fetching enrollments:', error);
+            setError(error.response?.data?.message || error.message || 'Failed to fetch enrollments');
+        } finally {
+            setLoading(false);
         }
     };
+    
     fetchEnrollments(); 
-  }, []);
+  }, [userData]);
   return (
     <div className="min-h-screen bg-white p-8">
-      <h1 className="text-3xl font-bold mb-6">My Enrollments</h1>
-      {enrollments.length === 0 ? (
+      <h1 className="text-3xl font-bold mb-6">My Enrollments</h1> 
+      {loading ? (
+        <p className="text-gray-500">Loading your enrollments...</p>
+      ) : error ? (
+        <div className="text-red-500">
+          <p>Error: {error}</p>
+          <p className="text-sm text-gray-500 mt-2">Please check the console for more details.</p>
+        </div>
+      ) : !userData ? (
+        <p className="text-gray-500">Please log in to view your enrollments.</p>
+      ) : enrollments.length === 0 ? (
         <p className="text-gray-500">You are not enrolled in any courses.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -56,6 +87,13 @@ export default function Enrollments() {
             >
             View more
             </button>
+            {/* <a
+              href={`/course/${topic.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-white font-bold px-4 py-2 bg-blue-600 rounded-md hover:bg-blue-700 transition-colors text-sm shadow">
+              View more
+            </a> */}
             </div>
             </div>
           ))}

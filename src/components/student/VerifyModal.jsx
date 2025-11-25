@@ -4,7 +4,7 @@ import { assets } from '../../assets/assets';
 import { toast } from 'react-toastify';
 import { authService } from '../../services/apiService';
 
-const VerifyModal = ({ isOpen, onClose, email }) => {
+const VerifyModal = ({ isOpen, onClose, email, onVerificationSuccess, type = 'login' }) => {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -12,7 +12,7 @@ const VerifyModal = ({ isOpen, onClose, email }) => {
    if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md flex flex-col overflow-hidden relative animate-fade-in p-8">
         <button
           className="absolute top-4 right-4 text-2xl text-gray-400 hover:text-gray-700"
@@ -28,14 +28,30 @@ const VerifyModal = ({ isOpen, onClose, email }) => {
             setError('');
             setLoading(true);
             try {
-              const res = await authService.verifyOtp(email, otp);
-              debugger;
+              // Use different API endpoints based on type
+              let res;
+              if (type === 'signup') {
+                res = await authService.signupVerifyUser(email, otp);
+              } else {
+                res = await authService.verifyOtp(email, otp);
+              }
+              
               setLoading(false);
               if (res.success === true) { 
-                if (res.user) { 
-                  setUserData(res.user); // Update global state
+                // Only auto-login for login verification, not signup verification
+                if (type === 'login' && res.user) { 
+                  setUserData(res.user); // Update global state only for login
                 }
-                toast.success(res.message || 'Verification successful!');
+                
+                if (type === 'signup') {
+                  toast.success(res.message || 'Account verified successfully! Please login to continue.');
+                } else {
+                  toast.success(res.message || 'Login successful!');
+                }
+                
+                if (onVerificationSuccess) {
+                  onVerificationSuccess(res.user);
+                }
                 onClose();
               } else {
                 setError(res.error || 'Invalid OTP. Please try again.');

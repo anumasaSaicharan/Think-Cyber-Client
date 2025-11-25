@@ -7,7 +7,11 @@ export const AppContext = createContext()
 export const AppContextProvider = (props) => {
 
     const backendUrl = import.meta.env.VITE_BACKEND_URL
-    const currency = import.meta.env.VITE_CURRENCY || 'USD';
+    const currency = import.meta.env.VITE_CURRENCY || '₹';
+    
+    // Debug currency value
+    console.log('AppContext - Environment currency:', import.meta.env.VITE_CURRENCY);
+    console.log('AppContext - Final currency:', currency);
 
     const navigate = useNavigate()
     const [showLogin, setShowLogin] = useState(false)
@@ -21,7 +25,7 @@ export const AppContextProvider = (props) => {
 
     useEffect(() => {
         const fetchUser = async () => {
-            debugger;
+            //debugger;
             const token = localStorage.getItem('authToken');
             if (!token) {
                 setUserData(null);

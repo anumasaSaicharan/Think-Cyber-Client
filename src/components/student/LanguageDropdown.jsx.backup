@@ -1,0 +1,161 @@
+// LanguageDropdown.jsx
+import React, {useEffect, useRef, useState} from 'react';
+
+// Only include the 2 languages you want
+const LANGS = [
+  { label: 'English', code: 'en' },
+  { label: 'Telugu',  code: 'te' },
+];
+
+function setCookie(name, value) {
+  document.cookie = `${name}=${value}; path=/; max-age=31536000; SameSite=Lax`;
+}
+
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+}
+
+// Simplified language switching function
+function switchLanguage(targetLang) {
+  console.log(`Switching to language: ${targetLang}`);
+  
+  // Set the Google Translate cookie
+  setCookie('googtrans', `/auto/${targetLang}`);
+  
+  // Wait a bit then try to find and trigger the Google Translate select
+  setTimeout(() => {
+    const selectors = [
+      '.goog-te-combo',
+      'select.goog-te-combo',
+      '#google_translate_element select',
+      '.goog-te-gadget select'
+    ];
+    
+    let selectElement = null;
+    for (const selector of selectors) {
+      selectElement = document.querySelector(selector);
+      if (selectElement) {
+        console.log(`Found Google Translate element: ${selector}`);
+        break;
+      }
+    }
+    
+    if (selectElement) {
+      console.log(`Current value: ${selectElement.value}, Setting to: ${targetLang}`);
+      selectElement.value = targetLang;
+      
+      // Trigger change event
+      const event = new Event('change', { bubbles: true, cancelable: true });
+      selectElement.dispatchEvent(event);
+      
+      console.log('Language change event dispatched');
+    } else {
+      console.warn('Google Translate select element not found');
+      // If element not found, try reloading to reset to English
+      if (targetLang === 'en') {
+        console.log('Reloading page to reset to English');
+        window.location.reload();
+      }
+    }
+  }, 200);
+}
+
+export default function LanguageDropdown({ assets }) {
+  const [open, setOpen] = useState(false);
+  const [currentLang, setCurrentLang] = useState('en');
+  const [isLoading, setIsLoading] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const onDown = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, []);
+
+  // Initialize and track current language
+  useEffect(() => {
+    // Check for saved language preference
+    const savedLang = getCookie('googtrans');
+    if (savedLang) {
+      const parts = savedLang.split('/');
+      if (parts.length >= 3) {
+        setCurrentLang(parts[2]);
+      }
+    }
+  }, []);
+
+  const handleLanguageSelect = (lang) => {
+    if (isLoading || lang.code === currentLang) return;
+    
+    setOpen(false);
+    setIsLoading(true);
+    
+    console.log(`User selected language: ${lang.label} (${lang.code})`);
+    
+    // Update current language immediately for UI feedback
+    setCurrentLang(lang.code);
+    
+    // Perform the language switch
+    switchLanguage(lang.code);
+    
+    // Stop loading after a reasonable time
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+  };
+
+  const getCurrentLangLabel = () => {
+    const lang = LANGS.find(l => l.code === currentLang);
+    return lang ? lang.label : 'English';
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        className={`flex items-center focus:outline-none ${isLoading ? 'opacity-70' : ''}`}
+        onClick={() => setOpen(!open)}
+        aria-label="Select Language"
+        title={`Current Language: ${getCurrentLangLabel()}`}
+      >
+        <img src={assets.language_icon} alt="Language" className="w-12 h-12" />
+        {isLoading && (
+          <div className="ml-1 w-3 h-3 border border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+        )}
+      </button>
+
+      {open && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 min-w-[220px] bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+          <div className="px-4 pt-4 pb-2 border-b border-gray-100">
+            <p className="font-semibold text-gray-800">Select Language</p>
+            <p className="text-xs text-gray-500 mb-2">
+              Current: <span className="font-medium">{getCurrentLangLabel()}</span>
+              {isLoading && <span className="ml-2 text-blue-500">(changing…)</span>}
+            </p>
+          </div>
+          <ul className="py-2">
+            {LANGS.map((l) => (
+              <li
+                key={l.code}
+                onClick={() => handleLanguageSelect(l)}
+                className={`px-4 py-2 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${
+                  l.code === currentLang 
+                    ? 'bg-blue-100 text-blue-700 font-medium' 
+                    : 'text-gray-700'
+                } ${isLoading ? 'opacity-50' : ''}`}
+              >
+                {l.label}
+                {l.code === currentLang && <span className="ml-1 text-blue-500">✓</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

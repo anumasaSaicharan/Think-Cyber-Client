@@ -19,25 +19,50 @@ const LoginModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showVerify, setShowVerify] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState('');
+  const [verificationType, setVerificationType] = useState('login');
   // Reset form when modal closes
   React.useEffect(() => {
     if (!isOpen) {
       setEmail('');
       setPassword('');
       setError('');
+      setShowSignup(false);
+      setShowVerify(false);
+      setVerifyEmail('');
+      setVerificationType('login');
     }
   }, [isOpen]);
   if (!isOpen && !showSignup && !showVerify) return null;
 
   if (showSignup) {
-    return <SignupModal isOpen={showSignup} onClose={() => { setShowSignup(false); onClose(); }} />;
+    return <SignupModal 
+      isOpen={showSignup} 
+      onClose={() => { setShowSignup(false); onClose(); }}
+      onVerificationNeeded={(email) => {
+        setVerifyEmail(email);
+        setVerificationType('signup');
+        setShowSignup(false);
+        setShowVerify(true);
+      }}
+    />;
   }
   if (showVerify) {
-    return <VerifyModal isOpen={showVerify} onClose={() => { setShowVerify(false); onClose(); }} email={email} />;
+    return <VerifyModal 
+      isOpen={showVerify} 
+      onClose={() => { setShowVerify(false); onClose(); }} 
+      email={verifyEmail || email}
+      type={verificationType}
+      onVerificationSuccess={(user) => {
+        // Handle successful verification
+        setShowVerify(false);
+        onClose();
+      }}
+    />;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-40">
       <div className="bg-white rounded-lg shadow-lg w-full max-w-md flex overflow-hidden relative animate-fade-in">
         {/* Close Button */}
         <button
@@ -48,34 +73,31 @@ const LoginModal = ({ isOpen, onClose }) => {
         </button>
         {/* Login Form Only */}
         <div className="flex flex-col justify-center w-full p-10">
-          <div className="flex items-center gap-2 mb-6">
-            <img src={assets.LoginLogo} alt="ThinkCyber" className="w-44" />
+          <div className="flex items-center gap-2 mb-4">
+            <img src={assets.LoginLogo} alt="ThinkCyber" className="w-44 mt-4" />
           </div>
           <h3 className="text-2xl font-bold mb-2">Login</h3>
-          <p className="text-gray-600 mb-6">Nice to see you! Please log in with your account.</p>
+          <p className="text-gray-600 mb-4">Nice to see you! Please log in with your account.</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
               setError('');
               setLoading(true);
               try {
-                const res = await authService.loginUser(email, password);
+                // For email-only login, send OTP to email and open verification modal
+                const res = await authService.resendOtp(email);
                 setLoading(false);
                 if (res.success === true) {
-                  toast.success(res.message);
-                  setShowVerify(true); // Open verify modal
-                } else if (res.status === 403) {
-                  setError('Your account is registered but not verified. ');
+                  toast.success('OTP sent to your email.');
+                  setVerifyEmail(email);
+                  setVerificationType('login');
+                  setShowVerify(true);
                 } else {
-                  setError(res.data?.error);
+                  setError(res.data?.error || 'Failed to send OTP');
                 }
               } catch (err) {
                 setLoading(false);
-                if (err.response && err.response.status === 403) {
-                  setError('Your account is registered but not verified. ');
-                } else {
-                  setError(err.response?.data?.error || 'Login failed');
-                }
+                setError(err.response?.data?.error || 'Failed to send OTP');
               }
             }}
           >
@@ -98,6 +120,8 @@ const LoginModal = ({ isOpen, onClose }) => {
                   setLoading(false);
                   if (res.success === true || res.status === 403) {
                     toast.success('OTP resent to your email.');
+                    setVerifyEmail(email);
+                    setVerificationType('login');
                     setShowVerify(true);
                   } else {
                     setError(res.data?.error || 'Failed to resend OTP');
@@ -115,7 +139,7 @@ const LoginModal = ({ isOpen, onClose }) => {
             </button>
           </form> 
           <div className="text-sm text-gray-500 mt-4 text-center">
-            Already Have An Account? <button type="button" onClick={() => setShowSignup(true)} className="text-blue-600 font-medium">Create <span className="underline">Account</span></button>
+            Already Have An Account? <button type="button" onClick={() => setShowSignup(true)} className="text-blue-600 font-medium"><span className="underline">Create Account</span></button>
           </div>
         </div>
       </div>

@@ -1,10 +1,9 @@
 // LanguageDropdown.jsx - Reliable version with multiple fallback options
 import React, { useEffect, useRef, useState } from 'react';
 
-// Include all 3 languages with English as default
+// Only include the 2 languages you want
 const LANGS = [
   { label: 'English', code: 'en' },
-  { label: 'Hindi', code: 'hi' },
   { label: 'Telugu', code: 'te' },
 ];
 
@@ -53,143 +52,37 @@ function getCurrentLanguage() {
 // Method 1: Google Translate (preferred)
 function tryGoogleTranslate(targetCode) {
   return new Promise((resolve, reject) => {
-    // Helper to find the google select element using multiple selectors
-    const findGoogleSelect = () => {
-      return (
-        document.querySelector('.goog-te-combo') ||
-        document.querySelector('#google_translate_element select') ||
-        document.querySelector('.goog-te-gadget select')
-      );
-    };
+    const select = document.querySelector('.goog-te-combo');
+    if (!select) {
+      reject(new Error('Google Translate not available'));
+      return;
+    }
 
-    let attempts = 0;
-    const maxAttempts = 6; // try for a few times before giving up
-
-    const attemptChange = () => {
-      const select = findGoogleSelect();
-      if (!select) {
-        attempts++;
-        if (attempts <= maxAttempts) {
-          console.log('Google select not found, retrying...', attempts);
-          setTimeout(attemptChange, 500);
-          return;
-        }
-
-        // If select is not available after retries, fallback by setting cookie and rejecting
-        console.log('Google Translate select not found after retries');
-        // Set cookie explicitly as fallback
-        try {
-          setCookie('googtrans', `/auto/${targetCode}`);
-          // also set with domain attribute to maximize chance
-          try {
-            document.cookie = `googtrans=/auto/${targetCode}; domain=${window.location.hostname}; path=/; max-age=31536000; SameSite=Lax`;
-          } catch (e) {
-            // ignore domain-setting errors
-          }
-        } catch (e) {
-          // ignore
-        }
-
-        reject(new Error('Google Translate select not available'));
-        return;
-      }
-
-      console.log(`Using Google Translate method for language: ${targetCode}`);
-
-      // Set cookie first
-      setCookie('googtrans', `/auto/${targetCode}`);
-      // Also try a second cookie write
-      try {
-        document.cookie = `googtrans=/auto/${targetCode}; path=/; max-age=31536000; SameSite=Lax`;
-      } catch (e) {}
-
-      // Change select value and trigger events
-      try {
-        if (select.value !== targetCode) {
-          console.log(`Changing Google Translate from ${select.value} to ${targetCode}`);
-          select.value = targetCode;
-          select.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
-          select.dispatchEvent(new Event('input', { bubbles: true }));
-          setTimeout(() => { try { select.click(); } catch (e) {} }, 100);
-        } else {
-          console.log(`Already at target language: ${targetCode}`);
-        }
-      } catch (e) {
-        console.warn('Error interacting with Google select:', e);
-      }
-
-      // Wait a bit to allow translation to apply
-      setTimeout(() => resolve(), 2200);
-    };
-
-    attemptChange();
+    console.log('Using Google Translate method');
+    setCookie('googtrans', `/auto/${targetCode}`);
+    select.value = targetCode;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    
+    setTimeout(() => resolve(), 2000);
   });
 }
 
 // Method 2: Page reload with URL parameter
 function tryPageReload(targetCode) {
   return new Promise((resolve) => {
-    console.log(`Using page reload method for language: ${targetCode}`);
+    console.log('Using page reload method');
     
-    // Store preference in multiple locations for reliability
+    // Store preference
     localStorage.setItem('preferredLanguage', targetCode);
-    sessionStorage.setItem('preferredLanguage', targetCode);
     setCookie('googtrans', `/auto/${targetCode}`);
-    setCookie('preferredLanguage', targetCode);
     
-    // Show user feedback
-    const body = document.body;
-    const overlay = document.createElement('div');
-    overlay.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.5);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-        color: white;
-        font-family: Arial, sans-serif;
-      ">
-        <div style="
-          background: white;
-          padding: 30px;
-          border-radius: 10px;
-          text-align: center;
-          color: #333;
-        ">
-          <div style="
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #3498db;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
-          "></div>
-          <p style="margin: 0; font-size: 16px;">Changing language...</p>
-        </div>
-      </div>
-      <style>
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      </style>
-    `;
-    body.appendChild(overlay);
-    
-    // Add language parameter to URL and reload
+    // Add language parameter and reload
     const url = new URL(window.location);
     url.searchParams.set('lang', targetCode);
     
     setTimeout(() => {
       window.location.href = url.toString();
-    }, 800);
+    }, 500);
     
     resolve();
   });
@@ -228,37 +121,9 @@ async function changeLanguage(targetCode) {
       case TRANSLATION_MODES.GOOGLE_TRANSLATE:
         try {
           await tryGoogleTranslate(targetCode);
-
-          // Verify the change worked by polling the select value
-          const verifyChange = () => new Promise((res) => {
-            let checks = 0;
-            const maxChecks = 6;
-            const interval = setInterval(() => {
-              const select = document.querySelector('.goog-te-combo') || document.querySelector('#google_translate_element select');
-              if (select && select.value === targetCode) {
-                clearInterval(interval);
-                console.log('Google Translate change verified successfully');
-                res(true);
-                return;
-              }
-              checks++;
-              if (checks >= maxChecks) {
-                clearInterval(interval);
-                res(false);
-              }
-            }, 500);
-          });
-
-          const ok = await verifyChange();
-          if (!ok) {
-            console.log('Google Translate verification failed, trying page reload...');
-            translationMode = TRANSLATION_MODES.PAGE_RELOAD;
-            await tryPageReload(targetCode);
-          }
-
           break;
         } catch (error) {
-          console.log('Google Translate failed:', error.message, 'trying page reload...');
+          console.log('Google Translate failed, trying page reload...');
           translationMode = TRANSLATION_MODES.PAGE_RELOAD;
           await tryPageReload(targetCode);
           break;
@@ -273,19 +138,12 @@ async function changeLanguage(targetCode) {
         break;
         
       default:
-        console.log('Unknown translation mode, using manual method');
         await tryManualTranslation(targetCode);
     }
   } catch (error) {
     console.error('All translation methods failed:', error);
-    // Last resort - store preference and try page reload
+    // Last resort - just store the preference
     localStorage.setItem('preferredLanguage', targetCode);
-    setCookie('googtrans', `/auto/${targetCode}`);
-    
-    // Force page reload as final fallback
-    if (confirm(`Translation system error. Reload page to apply ${targetCode.toUpperCase()} language?`)) {
-      window.location.reload();
-    }
   } finally {
     setTimeout(() => {
       isChanging = false;
@@ -314,7 +172,7 @@ function initializeGoogleTranslate() {
             new window.google.translate.TranslateElement(
               {
                 pageLanguage: 'en',
-                includedLanguages: 'en,hi,te',
+                includedLanguages: 'en,te',
                 layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE,
                 autoDisplay: false
               },
@@ -375,53 +233,21 @@ export default function LanguageDropdown({ assets }) {
     
     // Try to set up Google Translate in the background
     initializeGoogleTranslate().then(() => {
-      // Check multiple times for Google Translate availability with longer timeout
-      let attempts = 0;
-      const maxAttempts = 20;
-
-      const findGoogleSelect = () => {
-        return (
-          document.querySelector('.goog-te-combo') ||
-          document.querySelector('#google_translate_element select') ||
-          document.querySelector('.goog-te-gadget select')
-        );
-      };
-
-      const checkGoogleTranslate = () => {
-        const select = findGoogleSelect();
+      // Check if Google Translate is available after some time
+      setTimeout(() => {
+        const select = document.querySelector('.goog-te-combo');
         if (select) {
-          console.log('Google Translate is available - select element found');
+          console.log('Google Translate is available');
           translationMode = TRANSLATION_MODES.GOOGLE_TRANSLATE;
-
+          
           // Hide the Google UI
           const gadget = document.querySelector('.goog-te-gadget');
           if (gadget) gadget.style.display = 'none';
-
-          // Apply current language if not English
-          const currentLangLocal = getCurrentLanguage();
-          if (currentLangLocal !== 'en') {
-            setTimeout(() => {
-              try {
-                select.value = currentLangLocal;
-                select.dispatchEvent(new Event('change', { bubbles: true }));
-              } catch (e) {
-                console.warn('Failed to set google select value:', e);
-              }
-            }, 500);
-          }
         } else {
-          attempts++;
-          if (attempts < maxAttempts) {
-            setTimeout(checkGoogleTranslate, 700);
-          } else {
-            console.log('Google Translate not available after multiple attempts, using fallback methods');
-            translationMode = TRANSLATION_MODES.PAGE_RELOAD;
-          }
+          console.log('Google Translate not available, using fallback methods');
+          translationMode = TRANSLATION_MODES.PAGE_RELOAD;
         }
-      };
-
-      // Start checking after initial delay
-      setTimeout(checkGoogleTranslate, 1500);
+      }, 3000);
     });
 
     // Listen for language changes from other sources

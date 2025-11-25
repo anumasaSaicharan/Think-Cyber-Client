@@ -1,105 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import Slider from 'react-slick';
-import { assets } from '../../assets/assets';
-import 'slick-carousel/slick/slick.css';
-import 'slick-carousel/slick/slick-theme.css';
-import { useNavigate } from 'react-router-dom';
-import { homepageService, topicService } from '../../services/apiService';
-import Loading from './Loading';
-import { toast } from 'react-toastify';
-import SearchBar from './SearchBar';
+import React, { useRef, useState } from 'react';
+import { FaMicrophone, FaPlus } from 'react-icons/fa';
+import Hero from '../components/student/Hero'; 
+ 
+const tabs = [
+  'All',
+  'Popular',
+  'Recent',
+  'AI',
+  'Security',
+  'Courses',
+];
 
-const Hero = () => {
-  console.log('Hero component mounted');
-  const navigate = useNavigate();
-  const [homepageData, setHomepageData] = useState(null);
+import { topicService } from '../services/apiService';
+
+const StudentHome = () => {
+  const inputRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('All');
+  const [search, setSearch] = useState('');
+  const [topics, setTopics] = useState([]);
+   const [homepageData, setHomepageData] = useState(null);
   const [topicsData, setTopicsData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [useSlider, setUseSlider] = useState(true);
-  const [wishlist, setWishlist] = useState(() => {
-    // Load wishlist from localStorage on mount
-    const stored = localStorage.getItem('wishlist');
-    console.log('Loaded wishlist from localStorage:', stored);
-    return stored ? JSON.parse(stored) : [];
-  });
-  const [wishlistMsg, setWishlistMsg] = useState('');
-
-  console.log('Wishlist state:', wishlist);
-  console.log('Wishlist length:', wishlist.length === 0 ? 'Your wishlist is empty' : wishlistMsg);
-  console.log('Topics:', topicsData);
   // Fetch homepage data and categories on component mount
-  useEffect(() => {
-  console.log('Hero useEffect running: fetching homepage and topics');
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        // Fetch homepage data and topics in parallel
-        const [homepageResponse, topicsResponse] = await Promise.all([
-          homepageService.getHomepageByLanguage('en').catch(() => null),
-          topicService.getAllTopics({ limit: 6 }).catch(() => ({ data: [] }))
-        ]);
+    useEffect(() => {
+    console.log('Hero useEffect running: fetching homepage and topics');
+      const fetchData = async () => {
+        try {
+          setLoading(true);
+          // Fetch homepage data and topics in parallel
+          const [homepageResponse, topicsResponse] = await Promise.all([
+            homepageService.getHomepageByLanguage('en').catch(() => null),
+            topicService.getAllTopics({ limit: 6 }).catch(() => ({ data: [] }))
+          ]);
+  
+          setHomepageData(homepageResponse);
+          setTopicsData(topicsResponse?.data || []);
+    console.log('Homepage response:', homepageResponse);
+    console.log('Topics response:', topicsResponse);
+        } catch (err) {
+          console.error('Error fetching data:', err);
+          setError('Failed to load content');
+        } finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchData();
+    }, []);
 
-        setHomepageData(homepageResponse);
-        setTopicsData(topicsResponse?.data || []);
-  console.log('Homepage response:', homepageResponse);
-  console.log('Topics response:', topicsResponse);
+  // Fetch topics from API on mount
+  React.useEffect(() => {
+    const fetchTopics = async () => {
+      setLoading(true);
+      try {
+        const response = await topicService.getAllTopics({ limit: 6 });
+        setTopics(response?.data || []);
       } catch (err) {
-        console.error('Error fetching data:', err);
-        setError('Failed to load content');
+        setTopics([]);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetchTopics();
   }, []);
 
-  // Sync wishlist to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
-
-  const sliderSettings = {
-    dots: false,
-    infinite: true,
-    speed: 500,
-    slidesToShow: 4,
-    slidesToScroll: 1,
-    arrows: true, 
-    autoplay: true,
-    autoplaySpeed: 3000,
-    nextArrow: (
-    <button className="slick-next slick-arrow absolute top-4 right-4 z-10 bg-white text-black p-2 rounded-full shadow">
-    &#8250;
-    </button>
-    ),
-    prevArrow: (
-    <button className="slick-prev slick-arrow absolute top-4 right-16 z-10 bg-white text-black p-2 rounded-full shadow">
-    &#8249;
-    </button>
-    ),
-    responsive: [
-      {
-        breakpoint: 1024,
-        settings: {
-          slidesToShow: 2,
-          slidesToScroll: 1,
-        },
-      },
-      {
-        breakpoint: 600,
-        settings: {
-          slidesToShow: 1,
-          slidesToScroll: 1,
-          centerMode: false,
-          variableWidth: false,
-        },
-      },
-    ],
+  // Voice search handler
+  const handleVoiceSearch = () => {
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new window.webkitSpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.onresult = (event) => {
+        setSearch(event.results[0][0].transcript);
+      };
+      recognition.start();
+    } else {
+      alert('Voice search not supported in this browser.');
+    }
   };
 
-  // Component to render topics - either as slider or grid
+    // Component to render topics - either as slider or grid
   const TopicsDisplay = ({ topics }) => {
   const [canScrollPrev, setCanScrollPrev] = React.useState(false);
   const [canScrollNext, setCanScrollNext] = React.useState(true);
@@ -139,11 +118,9 @@ const Hero = () => {
         setWishlist(wishlist.filter((item) => item.id !== topic.id));
       } else {
         setWishlist([...wishlist, topic]);
-        toast.warn('Topic added to your wishlist!');
+        toast.success('Topic added to your wishlist!');
         setTimeout(() => setWishlistMsg(''), 1500);
-      }
-      // Navigate to wishlist page after click
-      navigate(' /wishlist');
+      } 
     };
 
     
@@ -192,6 +169,7 @@ const Hero = () => {
         </div>
       </div>
     );
+
     // Responsive: desktop/tablet = horizontal scroll, mobile = vertical list
     return (
       <div className="w-full relative">
@@ -219,7 +197,7 @@ const Hero = () => {
           ref={scrollRef}
           className="hidden md:flex overflow-x-auto no-scrollbar py-2"
         >
-          {topicsData.map((topic) => (
+          {topics.map((topic) => (
             <div className="flex-shrink-0 w-80 mr-4" key={topic.id}>
               <TopicCard topic={topic} />
             </div>
@@ -227,7 +205,7 @@ const Hero = () => {
         </div>
         {/* Mobile: show all cards in a vertical list, one per row */}
         <div className="md:hidden w-full flex flex-col items-center py-2 gap-4">
-          {topicsData.map((topic) => (
+          {topics.map((topic) => (
             <div className="w-full flex justify-center" key={topic.id}>
               <TopicCard topic={topic} />
             </div>
@@ -254,45 +232,64 @@ const Hero = () => {
     return <Loading />;
   }
 
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <p className="text-red-500 text-lg mb-4">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Retry
-        </button>
-      </div>
-    );
-  }
-
-  console.log('Homepage Data:', homepageData);
-
   return (
-    <div className="flex flex-col items-center justify-center w-full h-80 px-4 text-center bg-white">
-      {/* Centered Search Bar with 60% width */}
-      <div className="w-full max-w-none mb-0" style={{ width: '60%' }}>
-        <SearchBar data={topicsData} />
+    
+    <div className="chatgpt-home-layout w-full "  style={{ minHeight: '100vh', background: '#f7f7f8', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+       <section className="hero" style={{ marginTop: 60, textAlign: 'center' }}>
+        <h1 style={{ fontSize: '2rem', fontWeight: 500, marginBottom: 32 }}>What can I help with?</h1>
+        <div className="center-search" style={{ display: 'flex', alignItems: 'center', background: '#fff', borderRadius: 32, boxShadow: '0 2px 16px rgba(0,0,0,0.07)', padding: '12px 24px', width: 500, maxWidth: '90vw', margin: '0 auto' }}>
+          <FaPlus style={{ fontSize: '1.2rem', marginRight: 16, color: '#888' }} />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Ask anything"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ border: 'none', outline: 'none', fontSize: '1.1rem', width: '100%', background: 'transparent' }}
+          />
+          <FaMicrophone style={{ fontSize: '1.2rem', marginLeft: 16, color: '#888', cursor: 'pointer' }} onClick={handleVoiceSearch} />
+          <button onClick={handleVoiceSearch} style={{ background: '#f3f3f3', border: 'none', borderRadius: '50%', width: 36, height: 36, marginLeft: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <span style={{ fontSize: '1.2rem' }}>🎙️</span>
+          </button>
+        </div>
+      </section>
+      {/* Tabs below search bar */}
+      <div className="tabs" style={{ display: 'flex', gap: 12, marginTop: 32, marginBottom: 24 }}>
+        {tabs.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            style={{
+              padding: '6px 18px',
+              borderRadius: 20,
+              border: 'none',
+              background: activeTab === tab ? '#222' : '#eaeaea',
+              color: activeTab === tab ? '#fff' : '#222',
+              fontWeight: 500,
+              cursor: 'pointer',
+              fontSize: '0.95rem',
+              boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.2s',
+            }}
+          >
+            {tab}
+          </button>
+        ))}
       </div>
-      
-      {/* Centered Title and Subtitle */}
-      <div className="w-full text-center max-w-6xl">
-        <h1
-          className="relative font-bold uppercase mx-auto text-[32px] md:text-[46px] leading-tight md:leading-[54px] font-heebo text-[#24292D] text-center mb-8"
-        >
-          {homepageData?.data.hero?.title}
-        </h1>
-        <p className="block text-black mx-auto font-outfit text-[15px] md:text-[18px] font-medium leading-[22px] md:leading-[28px] text-center mb-6 max-w-4xl">
-          {homepageData?.data.hero?.description}
-        </p>
-        <p className="text-black mx-auto font-outfit text-[15px] md:text-[16px] font-medium leading-[22px] md:leading-[28px] text-center max-w-4xl">
-          {homepageData?.data.hero?.subtitle}
-        </p> 
-      </div> 
+      {/* Search topics below tabs */}
+      <div className="topics" style={{ width: 500, maxWidth: '90vw', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', color: '#888', fontSize: '1rem' }}>Loading topics...</div>
+        ) : (
+          topics.map(topic => (
+            <div key={topic.id || topic.name} style={{ background: '#fff', borderRadius: 16, padding: '16px 20px', boxShadow: '0 1px 8px rgba(0,0,0,0.05)', fontSize: '1rem', color: '#222' }}>
+              {topic.name || topic.title}
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
 
-export default Hero;
+export default StudentHome;

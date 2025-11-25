@@ -8,6 +8,28 @@ export default function UserDropdown({ assets,userData }) {
   const [ready, setReady] = useState(false);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
+
+  // Generate dynamic color based on user's name
+  const generateAvatarColor = (name) => {
+    if (!name) return 'bg-blue-500';
+    
+    const colors = [
+      'bg-blue-500'
+    ];
+    
+    const index = name.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
+
+  // Get first letter of user's name
+  const getInitial = () => {
+    if (userData?.firstname) {
+      return userData.firstname.charAt(0).toUpperCase();
+    } else if (userData?.email) {
+      return userData.email.charAt(0).toUpperCase();
+    }
+    return 'U';
+  };
   
 
   // Close on outside click
@@ -24,7 +46,13 @@ return (
             className="flex items-center focus:outline-none"
             onClick={() => setOpen(v => !v)} 
         >
-            <img src={assets.usernew_icon} alt="User" className="w-12 h-12" />
+            {userData ? (
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${generateAvatarColor(userData.firstname || userData.email)}`}>
+                {getInitial()}
+              </div>
+            ) : (
+              <img src={assets.usernew_icon} alt="User" className="w-12 h-12" />
+            )}
         </button>
 
         {open && (
@@ -41,7 +69,7 @@ return (
                                 // Clear localStorage/session and redirect to login
                                 localStorage.clear();
                                 sessionStorage.clear();
-                                window.location.href = '/ThinkCyber/web/';
+                                window.location.href = '/';
                             }}>
                         Logout
                     </li>

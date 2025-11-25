@@ -62,6 +62,8 @@ import AddressIcon from './address_icon.svg'
 import PhoneIcon from './phone_icon.svg'
 import EmailIcon from './email_icon.svg'
 import lockIcon from './lock.jpg'
+import bgLayer from './bg-layer.png'
+import contactUsLogo from './contact_us_logo.png'
   
 export const assets = {
     logo,
@@ -127,7 +129,9 @@ export const assets = {
     AddressIcon,
     PhoneIcon,  
     EmailIcon,
-    lockIcon 
+    lockIcon,
+    bgLayer,
+    contactUsLogo
 
 }
 

@@ -40,7 +40,7 @@ apiClient.interceptors.response.use(
 export const homepageService = {
   // Get homepage content by language
   getHomepageByLanguage: async (language = 'en') => {
-    debugger;
+    //debugger;
     try {
       const response = await apiClient.get(API_ENDPOINTS.HOMEPAGE_BY_LANGUAGE(language));
       return response;
@@ -281,6 +281,30 @@ export const privacyService = {
   },
 };
 
+// Terms and Conditions API Services
+export const termsService = {
+  // Get all terms and conditions
+  getAllTerms: async (params = {}) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.TERMS, { params });
+      return response;
+    } catch (error) {
+      console.error('Error fetching terms and conditions:', error);
+      throw error;
+    }
+  },
+
+  // Get latest published terms
+  getLatestTerms: async () => {
+    try {
+      const response = await apiClient.get(`${API_ENDPOINTS.TERMS}/latest`);
+      return response;
+    } catch (error) {
+      console.error('Error fetching latest terms:', error);
+      throw error;
+    }
+  },
+};
 
 // Topic API Services
 export const topicService = {
@@ -415,7 +439,7 @@ export const authService = {
   // Verify OTP
   verifyOtp: async (email, otp) => {
     try {
-      debugger;
+      //debugger;
       const response = await apiClient.post(API_ENDPOINTS.VERIFY_OTP, { email, otp });
       console.log('OTP Verification Response:', response);
       if (response.sessionToken) {
@@ -449,6 +473,46 @@ export const authService = {
       console.error('Error resending OTP:', error);
       throw error;
     }
+  },
+  signupVerifyUser: async (email, otp) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.SIGNUP_VERIFY, { email, otp });
+      if (response.token) {
+        localStorage.setItem('authToken', response.token);
+      }
+      return response;
+    } catch (error) {
+      console.error('Error verifying signup OTP:', error);
+      throw error;
+    }
+  },
+
+  // In apiService.js - Add more logging
+searchTopics: async (query, params = {}) => {
+  try {
+    const searchParams = {
+      q: query,
+      limit: 20,
+      ...params
+    };
+    
+    const endpoint = API_ENDPOINTS.TOPICS_SEARCH;
+    console.log('Calling endpoint:', endpoint);
+    console.log('With params:', searchParams);
+    console.log('Full URL will be:', `${endpoint}?${new URLSearchParams(searchParams)}`);
+    
+    const response = await apiClient.get(endpoint, { 
+      params: searchParams 
+    });
+    
+    console.log('Response received:', response);
+    return response;
+  } catch (error) {
+    console.error('Error searching topics:', error);
+    console.error('Error response:', error.response?.data);
+    throw error;
   }
+}
+
 };
 export default apiClient;

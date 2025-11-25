@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { homepageService } from '../../services/apiService';
 import Loading from '../../components/student/Loading';
-import Footer from '../../components/student/Footer';
 
 const FAQ = () => {
     const [faqs, setFAQs] = useState(null);
@@ -10,10 +9,10 @@ const FAQ = () => {
 
     useEffect(() => {
         const fetchFAQs = async () => {
-            debugger;
+            //debugger;
             try {
                 setLoading(true);
-                debugger;
+                //debugger;
                 const resp = await homepageService.getHomepageByLanguage('en');
                 setFAQs(resp.data.faqs);
             } catch (err) {
@@ -51,7 +50,6 @@ const FAQ = () => {
             </div>
         </div> 
         </div>
-         <Footer />
        </> 
     );
 };

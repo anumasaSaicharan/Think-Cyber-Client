@@ -1,0 +1,73 @@
+<!doctype html>
+<html l  <script>
+    // Called by Google's script once it loads
+    function googleTranslateElementInit() {
+      console.log('Initializing Google Translate...');
+      try {
+        new google.translate.TranslateElement(
+          {
+            pageLanguage: 'en',
+            includedLanguages: 'en,te', // Only English and Telugu
+            layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+            autoDisplay: false,
+            multilanguagePage: true
+          },
+          'google_translate_element'
+        );
+        console.log('Google Translate initialized successfully');
+      } catch (error) {
+        console.error('Google Translate initialization failed:', error);
+      }
+    }
+    
+    // Ensure the function is available globally
+    window.googleTranslateElementInit = googleTranslateElementInit;
+  </script> 
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ThinkCyber</title>
+  <style>
+   /* Hide the Google Translate top banner iframe */
+body > .skiptranslate,
+body > .skiptranslate iframe,
+.goog-te-banner-frame.skiptranslate {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+}
+
+/* Reset body top padding/margin that Google adds */
+body {
+  top: 0px !important;
+}
+  </style>
+  <script>
+    // Called by Google’s script once it loads
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement(
+        {
+          pageLanguage: 'en',
+          includedLanguages: 'en,te', // Only English and Telugu
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+          autoDisplay: false
+        },
+        'google_translate_element'
+      );
+    }
+
+    
+  </script> 
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+ 
+</head>
+
+<body>
+  <div id="root"></div>
+  <!-- Hidden Google Translate element -->
+  <div id="google_translate_element" style="display: none;"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

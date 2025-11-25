@@ -7,36 +7,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ThinkCyber</title>
   <style>
-   /* Hide the Google Translate top banner iframe */
-body > .skiptranslate,
-body > .skiptranslate iframe,
-.goog-te-banner-frame.skiptranslate {
-  display: none !important;
-  visibility: hidden !important;
-  height: 0 !important;
-}
-
-/* Reset body top padding/margin that Google adds */
-body {
-  top: 0px !important;
-}
-  </style>
-  <script>
-    // Called by Google’s script once it loads
-    function googleTranslateElementInit() {
-      new google.translate.TranslateElement(
-        {
-          pageLanguage: 'en',
-          includedLanguages: 'en,hi,te', // add more codes if you need
-        },
-        'google_translate_element'
-      );
+    /* Hide the Google Translate top banner iframe */
+    body > .skiptranslate,
+    body > .skiptranslate iframe,
+    .goog-te-banner-frame.skiptranslate {
+      display: none !important;
+      visibility: hidden !important;
+      height: 0 !important;
     }
 
-    
-  </script> 
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
- 
+    /* Reset body top padding/margin that Google adds */
+    body {
+      top: 0px !important;
+    }
+
+    /* Hide Google Translate gadget */
+    .goog-te-gadget {
+      display: none !important;
+    }
+  </style>
+
 </head>
 
 <body>

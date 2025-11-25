@@ -6,6 +6,7 @@ const API_VERSION = "/api";
 export const API_ENDPOINTS = {
   LOGIN: `${BASE_URL}${API_VERSION}/auth/send-otp`,
   VERIFY_OTP: `${BASE_URL}${API_VERSION}/auth/verify-otp`,
+  SIGNUP_VERIFY: `${BASE_URL}${API_VERSION}/auth/verify-signup-otp`,
   SIGNUP: `${BASE_URL}${API_VERSION}/auth/signup`,
   RESEND_OTP: `${BASE_URL}${API_VERSION}/auth/resend-otp`,
   GET_ME: `${BASE_URL}${API_VERSION}/auth/me`,
@@ -20,7 +21,7 @@ export const API_ENDPOINTS = {
   // Categories and subcategories
   CATEGORIES: `${BASE_URL}${API_VERSION}/categories`,
   CATEGORY_BY_ID: (id) => `${BASE_URL}${API_VERSION}/categories/${id}`,
-  SUBCATEGORIES: `${BASE_URL}${API_VERSION}/subcategories`,
+  SUBCATEGORIES: `${BASE_URL}${API_VERSION}/subcategories?page=1&limit=1000`,
   SUBCATEGORY_BY_ID: (id) => `${BASE_URL}${API_VERSION}/subcategories/${id}`,
 
   // Topic related endpoints
@@ -38,11 +39,17 @@ export const API_ENDPOINTS = {
   ENROLL: `${BASE_URL}${API_VERSION}/enrollments/enroll`,
   ENROLL_CHECK: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/check/${userId}/${topicId}`,
   USER_ENROLLS: (userId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}`,
+  USER_ENROLLS_TOPIC: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}/topic/${topicId}`,
   VERIFY_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-payment`,
 
   // User profile
   USER_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
   UPDATE_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
+
+  // Search topics
+  TOPICS_SEARCH: `${BASE_URL}${API_VERSION}/topics/deep/search`,
+  
+
 };
 
 export default API_ENDPOINTS;

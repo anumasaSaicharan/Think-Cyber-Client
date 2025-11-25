@@ -12,21 +12,21 @@ const PaymentSuccess = () => {
 
 useEffect(() => {
     const verify = async () => {
-      debugger;
+      //debugger;
       const params = new URLSearchParams(location.search);
       const sessionId = params.get('session_id');
       if (sessionId) {
-        debugger;
+        //debugger;
         // Only send sessionId to backend
         const response = await topicService.verifyPayment({ sessionId });
         if (response && response.success) {
           setUserData(response.user);
           toast.success('Payment successful! You are now enrolled.');
-          setTimeout(() => navigate(`/course/${response.topicId}?enrolled=1`), 2000);  
+          setTimeout(() => navigate(` /course/${response.topicId}?enrolled=1`), 2000);  
         } else {
           toast.error('Payment verification failed.');
           setUserData(response.user || null);
-          setTimeout(() => navigate('/payment-cancel'), 2000); // <-- Add this line
+          setTimeout(() => navigate(' /payment-cancel'), 2000); // <-- Add this line
         }
       }
     };

@@ -1,5 +1,4 @@
 import React, { useContext, useState, useRef, useEffect } from 'react'; 
-import Footer from '../../components/student/Footer';
 import { assets } from '../../assets/assets';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -12,8 +11,7 @@ const CourseDetails = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [modalVideo, setModalVideo] = useState(null);
   const { id } = useParams();
-  const currency = 'USD';
-  const { userData } = useContext(AppContext);
+  const { userData, currency } = useContext(AppContext);
   const [courseData, setCourseData] = useState(null);
   const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
   const location = useLocation();
@@ -32,6 +30,28 @@ const CourseDetails = () => {
       toast.error('Failed to fetch topic details');
     }
   }
+
+const goBack = () => {
+  const { fromCategory, fromSubCategory, appliedFilters } = location.state || {};
+
+  if (fromCategory || fromSubCategory || appliedFilters) {
+    // Optionally save to sessionStorage if you want persistence on reload
+    sessionStorage.setItem('fromCategory', fromCategory || '');
+    sessionStorage.setItem('fromSubCategory', fromSubCategory || '');
+    sessionStorage.setItem('appliedFilters', JSON.stringify(appliedFilters || {}));
+
+    navigate('/topics', {
+      state: {
+        fromCategory,
+        fromSubCategory,
+        appliedFilters
+      }
+    });
+  } else {
+    navigate('/topics');
+  }
+};
+
 
   const [openSections, setOpenSections] = useState({});
 
@@ -53,6 +73,7 @@ const CourseDetails = () => {
           userId: userData.id,
           topicId: courseData.id,
           email: userData.email,
+          currency: currency === '₹' ? 'INR' : 'USD'
         });
         if (response) {
           toast.success('Successfully enrolled in the course!');
@@ -66,9 +87,14 @@ const CourseDetails = () => {
     } else {
       // Paid course: initiate Stripe payment
       try { 
+        const currencyCode = currency === '₹' ? 'INR' : 'USD';
+        console.log('Sending enrollment request with currency:', currencyCode);
+        console.log('Original currency symbol:', currency);
+        
         const response = await topicService.enrollInTopic({
           userId: userData.id,
-          topicId: courseData.id
+          topicId: courseData.id,
+          currency: currencyCode
         }); 
         if (response.url) {
           window.location.href = response.url;
@@ -83,7 +109,7 @@ const CourseDetails = () => {
 
   // Example usage, adjust as per your actual API
   const checkEnrollment = async () => {
-    debugger;
+    //debugger;
     if (!userData || !userData.id) return false;
     try {
       const res = await topicService.checkUserEnrollment(userData.id, id);
@@ -107,7 +133,7 @@ const CourseDetails = () => {
   // Redirect from payment success with topicId in query
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    debugger;
+    //debugger;
     if (params.get('enrolled') === '1') {
       // Re-check enrollment after payment
       checkEnrollment().then(setIsAlreadyEnrolled);
@@ -186,9 +212,12 @@ const CourseDetails = () => {
         {/* Right Image */}
         <div className="w-full md:max-w-course-card z-10 shadow-custom-card rounded-t md:rounded-none overflow-hidden bg-white min-w-0">
           <img
-            src={courseData.thumbnail}
-            alt="Security Illustration"
+            src={courseData.thumbnail || assets.BasicSecurityImage}
+            alt="Course Illustration"
             className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.src = assets.BasicSecurityImage;
+            }}
           />
         </div> 
         </div>
@@ -198,11 +227,11 @@ const CourseDetails = () => {
 
             <div className="pt-8 text-gray-800 w-full">
               {/* Learning Objectives on top of modules */}
-            {courseData.learningObjectives && (
+            {courseData.learningObjectives && courseData.learningObjectives.trim() && courseData.learningObjectives !== '<p><br></p>' && (
               <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded overflow-x-auto w-full">
                 <h2 className="text-lg font-semibold text-blue-700 mb-2">What you'll learn</h2>
                 <div className="text-gray-700 text-sm w-full">
-                  <div className="w-full border border-gray-300 text-left" dangerouslySetInnerHTML={{ __html: courseData.learningObjectives }} />
+                  <div className="w-full border border-gray-300 text-left p-4 rounded" dangerouslySetInnerHTML={{ __html: courseData.learningObjectives }} />
                 </div>
               </div>
             )}  
@@ -223,7 +252,8 @@ const CourseDetails = () => {
                 })()}
               </p>
               <div className="pt-5 w-full">
-                {courseData.modules && courseData.modules.map((module, moduleIdx) => {
+                {courseData.modules && courseData.modules.length > 0 ? (
+                  courseData.modules.map((module, moduleIdx) => {
                   // Show all modules, but lock (disable) those after the first if not enrolled
                   const isLocked = !isAlreadyEnrolled && moduleIdx > 0;
                   return (
@@ -303,15 +333,22 @@ const CourseDetails = () => {
                       </div>
                     </div>
                   );
-                })}
+                })
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <p>No course content available yet.</p>
+                  </div>
+                )}
               </div> 
           </div> 
-          <div className="pt-8 pb-8 w-full">
-          <h2 className="text-lg font-semibold text-blue-700 mb-2">Description</h2>
-          <div className="px-0 py-2 text-gray-700 text-sm border-t border-gray-200 w-full">
-            <div className="w-full border border-gray-300 text-left" dangerouslySetInnerHTML={{ __html: courseData.description }} />
-          </div> 
-          </div>
+          {courseData.description && courseData.description.trim() && courseData.description !== '<p><br></p>' && (
+            <div className="pt-8 pb-8 w-full">
+              <h2 className="text-lg font-semibold text-blue-700 mb-2">Description</h2>
+              <div className="px-0 py-2 text-gray-700 text-sm border-t border-gray-200 w-full">
+                <div className="w-full border border-gray-300 text-left p-4" dangerouslySetInnerHTML={{ __html: courseData.description }} />
+              </div> 
+            </div>
+          )}
         </div>
  
         <div className="w-full md:max-w-course-card z-10 shadow-custom-card overflow-hidden bg-white min-w-0">
@@ -321,22 +358,25 @@ const CourseDetails = () => {
                 Enroll Now
               </button>
             )}
+            <button
+              onClick={goBack}
+              className="w-full py-3 rounded-lg bg-gray-200 text-gray-800 font-semibold">
+              Cancel
+            </button>
             {isAlreadyEnrolled && (
               <div className="md:mt-6 mt-4 w-full py-4 rounded-lg bg-green-600 text-white font-bold text-lg shadow-lg mb-6 text-center">
                 Already Enrolled
               </div>
             )}
-            <div className="pt-6 w-full"> 
-              <div className='mt-0 mb-4 w-full'>
-          <div className="inline-block px-2 py-1 rounded bg-yellow-400 text-black text-xs font-semibold align-middle">
-            </div> 
-        </div>
+            <div className="pt-6 w-full">
               {courseData.prerequisites && (
+                Array.isArray(courseData.prerequisites) ? courseData.prerequisites.length > 0 : courseData.prerequisites.trim()
+              ) && (
                 <div className="mt-4 w-full">
                   <p className="font-semibold text-gray-800 mb-1">Prerequisites</p>
                   <ul className="list-disc ml-5 text-sm text-gray-600 w-full">
                     {Array.isArray(courseData.prerequisites)
-                      ? courseData.prerequisites.map((pre, idx) => <li key={idx}>{pre}</li>)
+                      ? courseData.prerequisites.filter(pre => pre && pre.trim()).map((pre, idx) => <li key={idx}>{pre}</li>)
                       : <li>{courseData.prerequisites}</li>}
                   </ul>
                 </div>
@@ -346,10 +386,28 @@ const CourseDetails = () => {
                 <p className="font-semibold text-gray-800 mb-4 text-lg">Topic Details</p>
                 <div className="p-0 w-full">
                   {/* Target and Audience split into separate lines */}
-                  <div className="flex items-center gap-2 text-sm text-gray-700 mb-2 w-full">
-                    <span className="font-semibold">Target</span>
-                    <span>🏢 Business Owners, 🧑‍🤝‍🧑 Parents</span>
-                  </div>
+                  {courseData.targetAudience && (
+                    Array.isArray(courseData.targetAudience) ? courseData.targetAudience.length > 0 : courseData.targetAudience.trim()
+                  ) && (
+                    <div className="flex items-start gap-2 text-sm text-gray-700 mb-2 w-full">
+                      <span className="font-semibold">Target:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(courseData.targetAudience) ? (
+                          courseData.targetAudience.filter(aud => aud && aud.trim()).map((aud, idx) => ( 
+                            <div key={idx} className='flex items-center gap-1'>
+                              <span className="inline-block w-2 h-2 bg-blue-400 rounded-full" />
+                              <span>{aud}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className='flex items-center gap-1'>
+                            <span className="inline-block w-2 h-2 bg-blue-400 rounded-full" />
+                            <span>{courseData.targetAudience}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 text-sm text-gray-700 mb-2 w-full">
                     <span className="font-semibold">Audience:</span>
                     <span>🧒 Children, 🧑‍🏫 Educators</span>
@@ -361,7 +419,7 @@ const CourseDetails = () => {
                   {courseData.isFeatured ? (
                     <div className="flex items-center gap-2 text-sm text-gray-700 mt-4 w-full">
                       <span className="font-bold text-lg">Price:</span>
-                      <span>{courseData.price ? `$${courseData.price}` : 'N/A'}</span>
+                      <span>{courseData.price ? `₹${courseData.price}` : 'N/A'}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
@@ -377,7 +435,7 @@ const CourseDetails = () => {
       </div>
       {/* Video Modal */}
       {showVideoModal && modalVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60">
           <div className="bg-white rounded-lg shadow-lg p-6 relative max-w-xl w-full">
             <button
               className="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold"
@@ -408,8 +466,7 @@ const CourseDetails = () => {
             </div>
           </div>
         </div>
-      )}
-      <Footer />
+      )} 
     </>
   ) : <Loading />
 };
