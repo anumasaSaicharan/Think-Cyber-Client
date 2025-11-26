@@ -484,7 +484,8 @@ const TopicsList = () => {
                       showPrice={true}
                       className="min-h-[200px]"
                       selectedCategory={selectedCategory}
-                      selectedSubcategory={selectedSubcategory}
+                      // selectedSubcategory={selectedSubcategory}
+                      selectedSubCategory={selectedSubcategory}   // <-- updated
                       filters={{
                         priceFilter,
                         searchQuery
