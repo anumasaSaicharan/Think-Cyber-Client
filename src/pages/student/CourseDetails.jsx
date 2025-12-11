@@ -122,11 +122,10 @@ const CourseDetails = () => {
         toast.error('Failed to enroll in the course');
       }
     } else {
-      // Paid course enrollment
+      // Paid course enrollment with Razorpay
       try {
         const currencyCode = currency === '₹' ? 'INR' : 'USD';
         console.log('Sending enrollment request with currency:', currencyCode);
-        console.log('Original currency symbol:', currency);
 
         const response = await topicService.enrollInTopic({
           userId: userData.id,
@@ -134,13 +133,65 @@ const CourseDetails = () => {
           email: userData.email,
           currency: currencyCode,
         });
-        if (response.success) {
-          toast.success(response.message || 'Successfully enrolled in the course!');
+
+        if (response.success && response.requiresPayment) {
+          // Initialize Razorpay checkout
+          const options = {
+            key: response.keyId,
+            amount: response.amount,
+            currency: response.currency,
+            name: 'ThinkCyber',
+            description: courseData.title,
+            order_id: response.orderId,
+            handler: async function (razorpayResponse) {
+              try {
+                // Verify payment on backend
+                const verifyResponse = await fetch('http://localhost:8081/api/enrollments/verify-payment', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    razorpay_order_id: razorpayResponse.razorpay_order_id,
+                    razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                    razorpay_signature: razorpayResponse.razorpay_signature,
+                    userId: userData.id,
+                    topicId: courseData.id,
+                  }),
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (verifyData.success) {
+                  toast.success('Payment successful! You are now enrolled.');
+                  setIsAlreadyEnrolled(true);
+                } else {
+                  toast.error('Payment verification failed');
+                }
+              } catch (error) {
+                toast.error('Payment verification failed');
+              }
+            },
+            prefill: {
+              name: userData.name || '',
+              email: userData.email || '',
+              contact: userData.phone || '',
+            },
+            theme: {
+              color: '#2563eb',
+            },
+          };
+
+          const razorpay = new window.Razorpay(options);
+          razorpay.open();
+        } else if (response.success) {
+          toast.success('Successfully enrolled in the course!');
           setIsAlreadyEnrolled(true);
         } else {
           toast.error(response.error || 'Failed to enroll in the course');
         }
       } catch (err) {
+        console.error('Enrollment error:', err);
         toast.error('Enrollment failed');
       }
     }
