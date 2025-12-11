@@ -356,8 +356,7 @@ const TopicsList = () => {
                       //   console.log('Setting category:', newValue, 'Current:', selectedCategory);
                       //   setSelectedCategory(newValue);
                       // }}
-                      onClick={() => {
-  // When restoring, DO NOT toggle category open/close
+                      onClick={() => { // When restoring, DO NOT toggle category open/close
                       if (restoring) {
                         return; 
                       }
@@ -367,17 +366,30 @@ const TopicsList = () => {
 
                       className="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-gray-100"
                     >
-                      <span className="text-gray-700 font-medium">{category.name}</span>
-                      <svg 
-                        className={`w-4 h-4 transform transition-transform ${
-                          selectedCategory === category.id ? 'rotate-180' : ''
-                        }`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <div className="flex items-center justify-between w-full">
+                                            {/* Category Name */}
+                        <span className="text-gray-700 font-medium">{category.name}</span>
+
+                        {/* Right side: Price + Arrow */}
+                        <div className="flex items-center space-x-2">
+                          {category.price != null && (
+                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-semibold">
+                              {category.price === 0 ? "Free" : `₹${category.price}`}
+                            </span>
+                          )}
+
+                          <svg 
+                            className={`w-4 h-4 transform transition-transform ${
+                              selectedCategory === category.id ? 'rotate-180' : ''
+                            }`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                     
                     {/* Subcategories */}
