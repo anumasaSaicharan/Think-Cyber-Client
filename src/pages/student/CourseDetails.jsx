@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import Loading from '../../components/student/Loading';
 import { topicService } from '../../services/apiService';
 import { AppContext } from '../../context/AppContext';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 const CourseDetails = () => {
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -121,7 +122,7 @@ const CourseDetails = () => {
         toast.error('Failed to enroll in the course');
       }
     } else {
-      // Paid course: initiate Stripe payment
+      // Paid course enrollment
       try {
         const currencyCode = currency === '₹' ? 'INR' : 'USD';
         console.log('Sending enrollment request with currency:', currencyCode);
@@ -130,15 +131,17 @@ const CourseDetails = () => {
         const response = await topicService.enrollInTopic({
           userId: userData.id,
           topicId: courseData.id,
+          email: userData.email,
           currency: currencyCode,
         });
-        if (response.url) {
-          window.location.href = response.url;
+        if (response.success) {
+          toast.success(response.message || 'Successfully enrolled in the course!');
+          setIsAlreadyEnrolled(true);
         } else {
-          toast.error(response.error || 'Failed to initiate payment');
+          toast.error(response.error || 'Failed to enroll in the course');
         }
       } catch (err) {
-        toast.error('Payment initiation failed');
+        toast.error('Enrollment failed');
       }
     }
   };
@@ -228,10 +231,10 @@ const CourseDetails = () => {
           <h1 className="text-3xl md:text-4xl font-bold mb-4 text-black w-full">
             {courseData.title}
           </h1>
-          <p className="text-sm md:text-base mb-5 w-full">
-            {courseData.description && courseData.description.length > 300
-              ? courseData.description.slice(0, 300) + '...'
-              : courseData.description}
+          <p className="text-sm md:text-base mb-5 w-full text-white">
+            {courseData.description && courseData.description.replace(/<[^>]*>/g, '').length > 200
+              ? courseData.description.replace(/<[^>]*>/g, '').slice(0, 200) + '...'
+              : courseData.description.replace(/<[^>]*>/g, '')}
           </p>
           <p className="text-md text-white w-full">
             <span className="mr-4">
@@ -269,6 +272,13 @@ const CourseDetails = () => {
       <div className="flex flex-col md:flex-row gap-10 relative items-start justify-between md:px-36 px-2 text-left w-full">
         <div className="z-10 text-gray-500 w-full md:w-2/3">
           <div className="pt-8 text-gray-800 w-full">
+            {courseData.description && courseData.description.trim() && (
+              <div className="mb-6 w-full">
+                <h2 className="text-xl font-semibold text-gray-900 mb-3">About this Course</h2>
+                 
+              </div>
+            )}
+
             {courseData.learningObjectives &&
               courseData.learningObjectives.trim() &&
               courseData.learningObjectives !== '<p><br></p>' && (

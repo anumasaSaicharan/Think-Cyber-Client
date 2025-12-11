@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import MarkdownRenderer from '../MarkdownRenderer';
 
 const TopicCard = ({ 
   topic, 
@@ -55,12 +56,12 @@ const TopicCard = ({
         <h3 className={`text-sm w-full font-bold mb-1 ${topic.textColor} leading-tight`}>
           {topic.title.length > 50 ? `${topic.title.slice(0, 50)}...` : topic.title}
         </h3>
-        <p 
-          className="text-base text-gray-600 mb-0 overflow-hidden text-ellipsis" 
+        <div 
+          className="text-base text-gray-600 mb-0 overflow-hidden text-ellipsis line-clamp-3" 
           style={{ display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}
         >
-          {topic.description}
-        </p>
+          <MarkdownRenderer content={topic.description} />
+        </div>
       </div>
 
       {/* View More Button */}
