@@ -30,6 +30,7 @@ const TopicsList = () => {
     const stored = localStorage.getItem('wishlist');
     return stored ? JSON.parse(stored) : [];
   });
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' or 'asc'
 
   // Fetch data
   useEffect(() => {
@@ -185,14 +186,25 @@ const TopicsList = () => {
 
     // Filter by price
     if (priceFilter === 'free') {
-      filtered = filtered.filter(topic => topic.price === 0 || topic.isFree);
+      filtered = filtered.filter(topic => 
+        topic.price === 0 || topic.price < 1 || topic.isFree === true
+      );
     } else if (priceFilter === 'paid') {
-      filtered = filtered.filter(topic => topic.price > 0 || !topic.isFree);
+      filtered = filtered.filter(topic => 
+        topic.price > 0 && topic.isFree !== true
+      );
     }
+
+    // Sort by date
+    filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || a.createdAt || 0);
+      const dateB = new Date(b.created_at || b.createdAt || 0);
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
 
     setFilteredTopics(filtered);
     setCurrentPage(1);
-  }, [topicsData, searchQuery, selectedCategory, selectedSubcategory, priceFilter]);
+  }, [topicsData, searchQuery, selectedCategory, selectedSubcategory, priceFilter, sortOrder]);
 
   // Pagination logic
   const indexOfLastTopic = currentPage * topicsPerPage;
@@ -462,7 +474,22 @@ const TopicsList = () => {
           <div className="p-6">
             {/* Header */}
             <div className="mb-6">
-              <h1 className="text-3xl font-bold text-gray-800 mb-4">All Topics</h1>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-3xl font-bold text-gray-800">All Topics</h1>
+                
+                {/* Sort by Date */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Sort by:</span>
+                  <select
+                    value={sortOrder}
+                    onChange={(e) => setSortOrder(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="desc">Newest First</option>
+                    <option value="asc">Oldest First</option>
+                  </select>
+                </div>
+              </div>
                
               {/* Results count */}
               <div className="mt-4 text-gray-600">
