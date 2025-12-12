@@ -100,11 +100,21 @@ const CourseDetails = () => {
   };
 
   const enrollCourse = async () => {
+    // Check if user is logged in
     if (!userData || !userData.id) {
       toast.error('Please log in to enroll in the topic');
       return;
     }
-    if (courseData.isFree || courseData.price === 0) {
+
+    console.log('Enrolling in course:', { 
+      topicId: courseData.id, 
+      price: courseData.price, 
+      isFree: courseData.isFree 
+    });
+
+    // Check if course is free
+    if (courseData.isFree || courseData.price === 0 || courseData.price === null) {
+      // Free course - enroll directly
       try {
         const response = await topicService.enrollInTopic({
           userId: userData.id,
@@ -112,20 +122,27 @@ const CourseDetails = () => {
           email: userData.email,
           currency: currency === '₹' ? 'INR' : 'USD',
         });
-        if (response) {
-          toast.success('Successfully enrolled in the course!');
+        
+        console.log('Free enrollment response:', response);
+        
+        if (response && response.success) {
+          toast.success('Successfully enrolled in the free course!');
           setIsAlreadyEnrolled(true);
         } else {
-          toast.error('Failed to enroll in the course');
+          const errorMsg = response?.error || 'Failed to enroll in the course';
+          console.error('Free enrollment failed:', errorMsg);
+          toast.error(errorMsg);
         }
       } catch (error) {
-        toast.error('Failed to enroll in the course');
+        console.error('Free enrollment error:', error);
+        const errorMsg = error?.response?.data?.error || error?.message || 'Failed to enroll in the course';
+        toast.error(errorMsg);
       }
     } else {
-      // Paid course enrollment with Razorpay
+      // Paid course - use Razorpay
       try {
         const currencyCode = currency === '₹' ? 'INR' : 'USD';
-        console.log('Sending enrollment request with currency:', currencyCode);
+        console.log('Initiating paid enrollment with Razorpay');
 
         const response = await topicService.enrollInTopic({
           userId: userData.id,
@@ -133,6 +150,8 @@ const CourseDetails = () => {
           email: userData.email,
           currency: currencyCode,
         });
+
+        console.log('Paid enrollment response:', response);
 
         if (response.success && response.requiresPayment) {
           // Initialize Razorpay checkout
@@ -169,6 +188,7 @@ const CourseDetails = () => {
                   toast.error('Payment verification failed');
                 }
               } catch (error) {
+                console.error('Payment verification error:', error);
                 toast.error('Payment verification failed');
               }
             },
@@ -185,25 +205,40 @@ const CourseDetails = () => {
           const razorpay = new window.Razorpay(options);
           razorpay.open();
         } else if (response.success) {
+          // Fallback in case backend returns success without payment
           toast.success('Successfully enrolled in the course!');
           setIsAlreadyEnrolled(true);
         } else {
-          toast.error(response.error || 'Failed to enroll in the course');
+          const errorMsg = response.error || 'Failed to enroll in the course';
+          console.error('Paid enrollment failed:', errorMsg);
+          toast.error(errorMsg);
         }
       } catch (err) {
         console.error('Enrollment error:', err);
-        toast.error('Enrollment failed');
+        const errorMsg = err?.response?.data?.error || err?.message || 'Enrollment failed';
+        toast.error(errorMsg);
       }
     }
   };
 
   // Example usage, adjust as per your actual API
   const checkEnrollment = async () => {
-    if (!userData || !userData.id) return false;
+    if (!userData || !userData.id) {
+      console.log('checkEnrollment: No user data');
+      return false;
+    }
     try {
       const res = await topicService.checkUserEnrollment(userData.id, id);
+      console.log('checkEnrollment response:', {
+        userId: userData.id,
+        topicId: id,
+        response: res,
+        enrolled: res?.enrolled,
+        paymentStatus: res?.payment_status
+      });
       return res?.enrolled || false;
-    } catch {
+    } catch (error) {
+      console.error('checkEnrollment error:', error);
       return false;
     }
   };
@@ -212,7 +247,9 @@ const CourseDetails = () => {
     const fetchAll = async () => {
       await fetchCourseData();
       if (userData && id) {
+        console.log('Checking enrollment for:', { userId: userData.id, topicId: id });
         const enrolled = await checkEnrollment();
+        console.log('Setting isAlreadyEnrolled to:', enrolled);
         setIsAlreadyEnrolled(enrolled);
       }
     };
@@ -528,6 +565,11 @@ const CourseDetails = () => {
 
         <div className="w-full md:max-w-course-card z-10 shadow-custom-card overflow-hidden bg-white min-w-0">
           <div className="p-5 w-full">
+            {isAlreadyEnrolled && (
+              <div className="md:mt-6 mt-4 w-full py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium text-center mb-6">
+                Enrolled
+              </div>
+            )}
             {!isAlreadyEnrolled && (
               <button
                 onClick={enrollCourse}
@@ -535,17 +577,6 @@ const CourseDetails = () => {
               >
                 Enroll Now
               </button>
-            )}
-            <button
-              onClick={goBack}
-              className="w-full py-3 rounded-lg bg-gray-200 text-gray-800 font-semibold"
-            >
-              Cancel
-            </button>
-            {isAlreadyEnrolled && (
-              <div className="md:mt-6 mt-4 w-full py-4 rounded-lg bg-green-600 text-white font-bold text-lg shadow-lg mb-6 text-center">
-                Already Enrolled
-              </div>
             )}
 
             <div className="pt-6 w-full">

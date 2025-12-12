@@ -359,6 +359,11 @@ export const topicService = {
       return response;
     } catch (error) {
       console.error('Error enrolling in topic:', error);
+      console.error('Error response:', error.response?.data);
+      // Re-throw with response data if available
+      if (error.response?.data) {
+        throw { ...error, response: error.response };
+      }
       throw error;
     }
   },
