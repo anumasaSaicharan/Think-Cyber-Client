@@ -54,7 +54,7 @@ const About = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 max-w-7xl">
+        <div className="w-full flex flex-col gap-8">
           {/* Left Side - Image Only */}
           <div className="flex flex-col">
             {/* Security Image Card */}

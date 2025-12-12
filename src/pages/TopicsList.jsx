@@ -10,7 +10,7 @@ const TopicsList = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // State declarations (your existing states)
+  // State declarations
   const [topicsData, setTopicsData] = useState([]);
   const [filteredTopics, setFilteredTopics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +31,7 @@ const TopicsList = () => {
     return stored ? JSON.parse(stored) : [];
   });
 
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -49,11 +50,13 @@ const TopicsList = () => {
         const categoriesData = categoriesResponse?.data || [];
         const subcategoriesData = subcategoriesResponse?.data || [];
 
-        // Enrich categories with subcategories
+        // FIX: Use category_id (snake_case) from API response
         const categoriesWithSubcategories = categoriesData.map(category => ({
           ...category,
-          subcategories: subcategoriesData.filter(sub => sub.categoryId === category.id)
+          subcategories: subcategoriesData.filter(sub => sub.category_id === category.id)
         }));
+
+        console.log('Categories with subcategories:', categoriesWithSubcategories);
 
         setCategories(categoriesWithSubcategories);
         setSubcategories(subcategoriesData);
@@ -68,72 +71,90 @@ const TopicsList = () => {
     fetchData();
   }, []);
 
+  // Restore filters from location state or sessionStorage
   useEffect(() => {
-  if (!categoriesLoading && categories.length > 0 && subcategories.length > 0) {
-    setRestoring(true);
-    if (location.state) {
-      // Existing restoration from location.state (as you have now)
-      if (location.state.fromCategory) setSelectedCategory(Number(location.state.fromCategory));
-      else if (location.state.fromSubCategory) {
-        const subcat = subcategories.find(sub => sub.id === Number(location.state.fromSubCategory));
-        if (subcat) setSelectedCategory(subcat.categoryId);
+    if (!categoriesLoading && categories.length > 0 && subcategories.length > 0) {
+      setRestoring(true);
+      
+      if (location.state) {
+        // Restore from location.state
+        if (location.state.fromCategory) {
+          setSelectedCategory(Number(location.state.fromCategory));
+        } else if (location.state.fromSubCategory) {
+          const subcat = subcategories.find(sub => sub.id === Number(location.state.fromSubCategory));
+          if (subcat) {
+            setSelectedCategory(subcat.category_id);
+          }
+        }
+        if (location.state.fromSubCategory) {
+          setSelectedSubcategory(Number(location.state.fromSubCategory));
+        }
+        if (location.state.appliedFilters) {
+          const filters = location.state.appliedFilters;
+          if (filters.priceFilter) setPriceFilter(filters.priceFilter);
+          if (filters.searchQuery) setSearchQuery(filters.searchQuery);
+        }
+      } else {
+        // Restore from sessionStorage
+        const savedCategory = sessionStorage.getItem('selectedCategory');
+        const savedSubcategory = sessionStorage.getItem('selectedSubcategory');
+        const savedPriceFilter = sessionStorage.getItem('priceFilter') || 'all';
+        const savedSearchQuery = sessionStorage.getItem('searchQuery') || '';
+
+        if (savedCategory) setSelectedCategory(Number(savedCategory));
+        if (savedSubcategory) setSelectedSubcategory(Number(savedSubcategory));
+        setPriceFilter(savedPriceFilter);
+        setSearchQuery(savedSearchQuery);
       }
-      if (location.state.fromSubCategory) setSelectedSubcategory(Number(location.state.fromSubCategory));
-      if (location.state.appliedFilters) {
-        const filters = location.state.appliedFilters;
-        if (filters.priceFilter) setPriceFilter(filters.priceFilter);
-        if (filters.searchQuery) setSearchQuery(filters.searchQuery);
-      }
+
+      setSidebarOpen(true);
+      const timeoutId = setTimeout(() => setRestoring(false), 200);
+
+      return () => clearTimeout(timeoutId);
     } else {
-      // Restore from sessionStorage if location.state absent
-      const savedCategory = sessionStorage.getItem('selectedCategory');
-      const savedSubcategory = sessionStorage.getItem('selectedSubcategory');
-      const savedPriceFilter = sessionStorage.getItem('priceFilter') || 'all';
-      const savedSearchQuery = sessionStorage.getItem('searchQuery') || '';
-
-      if (savedCategory) setSelectedCategory(Number(savedCategory));
-      if (savedSubcategory) setSelectedSubcategory(Number(savedSubcategory));
-      setPriceFilter(savedPriceFilter);
-      setSearchQuery(savedSearchQuery);
+      setRestoring(false);
     }
+  }, [location.state, categoriesLoading, categories, subcategories]);
 
-    setSidebarOpen(true);
-    const timeoutId = setTimeout(() => setRestoring(false), 200);
+  // Save filters to sessionStorage
+  useEffect(() => {
+    if (selectedCategory) {
+      sessionStorage.setItem('selectedCategory', selectedCategory.toString());
+    } else {
+      sessionStorage.removeItem('selectedCategory');
+    }
+  }, [selectedCategory]);
 
-    return () => clearTimeout(timeoutId);
-  } else {
-    setRestoring(false);
-  }
-}, [location.state, categoriesLoading, categories, subcategories]);
+  useEffect(() => {
+    if (selectedSubcategory) {
+      sessionStorage.setItem('selectedSubcategory', selectedSubcategory.toString());
+    } else {
+      sessionStorage.removeItem('selectedSubcategory');
+    }
+  }, [selectedSubcategory]);
 
+  useEffect(() => {
+    sessionStorage.setItem('priceFilter', priceFilter);
+  }, [priceFilter]);
 
-  // Sync wishlist to localStorage - unchanged
+  useEffect(() => {
+    sessionStorage.setItem('searchQuery', searchQuery);
+  }, [searchQuery]);
+
+  // Sync wishlist to localStorage
   useEffect(() => {
     localStorage.setItem('wishlist', JSON.stringify(wishlist));
   }, [wishlist]);
 
-  // // Reset subcategory when category changes
-  // useEffect(() => {
-  //   setSelectedSubcategory('');
-  // }, [selectedCategory]);
-
-// useEffect(() => {
-//   if (!location.state) {
-//     setSelectedSubcategory('');
-//   }
-// }, [selectedCategory]);
-
+  // Reset subcategory when category changes (not during restoration)
+  useEffect(() => {
+    if (!restoring && !location.state) {
+      setSelectedSubcategory('');
+    }
+  }, [selectedCategory, restoring, location.state]);
 
   // Filter topics based on selected filters
   useEffect(() => {
-    console.log('Filter useEffect triggered with:', {
-      selectedCategory,
-      selectedSubcategory,
-      priceFilter,
-      searchQuery,
-      topicsDataLength: topicsData.length
-    });
-    
     let filtered = [...topicsData];
 
     // Filter by search query
@@ -146,47 +167,21 @@ const TopicsList = () => {
 
     // Filter by category
     if (selectedCategory) {
-      console.log('Filtering by category:', selectedCategory, typeof selectedCategory);
       filtered = filtered.filter(topic => {
-        console.log('Topic category data:', {
-          categoryId: topic.categoryId,
-          'category?.id': topic.category?.id,
-          'category?.name': topic.category?.name,
-          categoryName: topic.categoryName
-        });
-        // Convert selectedCategory to number if it's a string number
-        const categoryId = typeof selectedCategory === 'string' ? 
-          (isNaN(Number(selectedCategory)) ? selectedCategory : Number(selectedCategory)) : 
-          selectedCategory;
-        
+        const categoryId = Number(selectedCategory);
         return topic.categoryId === categoryId || 
-               topic.category?.id === categoryId ||
-               topic.category?.name === selectedCategory ||
-               topic.categoryName === selectedCategory;
+               topic.category?.id === categoryId;
       });
     }
 
     // Filter by subcategory
     if (selectedSubcategory) {
-      console.log('Filtering by subcategory:', selectedSubcategory, typeof selectedSubcategory);
       filtered = filtered.filter(topic => {
-        console.log('Topic subcategory data:', {
-          subcategoryId: topic.subcategoryId,
-          'subcategory?.id': topic.subcategory?.id,
-          'subcategory?.name': topic.subcategory?.name,
-          subcategoryName: topic.subcategoryName
-        });
-        // Convert selectedSubcategory to number if it's a string number
-        const subcategoryId = typeof selectedSubcategory === 'string' ? 
-          (isNaN(Number(selectedSubcategory)) ? selectedSubcategory : Number(selectedSubcategory)) : 
-          selectedSubcategory;
-        
-      //   return topic.subcategoryId === subcategoryId ||
-      //          topic.subcategory?.id === subcategoryId ||
-      //          topic.subcategory?.name === selectedSubcategory ||
-      //          topic.subcategoryName === selectedSubcategory;
-      // });
-      return topic.subcategoryId === subcategoryId || topic.subcategoryName === selectedSubcategory; });    }
+        const subcategoryId = Number(selectedSubcategory);
+        return topic.subcategoryId === subcategoryId ||
+               topic.subcategory?.id === subcategoryId;
+      });
+    }
 
     // Filter by price
     if (priceFilter === 'free') {
@@ -196,7 +191,7 @@ const TopicsList = () => {
     }
 
     setFilteredTopics(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
+    setCurrentPage(1);
   }, [topicsData, searchQuery, selectedCategory, selectedSubcategory, priceFilter]);
 
   // Pagination logic
@@ -205,7 +200,7 @@ const TopicsList = () => {
   const currentTopics = filteredTopics.slice(indexOfFirstTopic, indexOfLastTopic);
   const totalPages = Math.ceil(filteredTopics.length / topicsPerPage);
 
-  // Transform topics data for display (same as Hero component)
+  // Transform topics data for display
   const transformedTopics = currentTopics.map((topic, index) => ({
     id: topic.id || (index + 1).toString().padStart(2, '0'),
     title: topic.name || topic.title || `Topic ${index + 1}`,
@@ -235,7 +230,18 @@ const TopicsList = () => {
     }
   };
 
-
+  // Handle category click
+  const handleCategoryClick = (categoryId) => {
+    if (restoring) return;
+    
+    const newValue = selectedCategory === categoryId ? '' : categoryId;
+    setSelectedCategory(newValue);
+    
+    // Reset subcategory when toggling category closed
+    if (newValue === '') {
+      setSelectedSubcategory('');
+    }
+  };
 
   // Pagination component
   const Pagination = () => (
@@ -327,15 +333,12 @@ const TopicsList = () => {
           </div>
 
           {/* Sidebar Content */}
-          <div className="p-6 space-y-6 overflow-y-auto h-full">
-           
-
+          <div className="p-6 space-y-6 overflow-y-auto h-full pb-32">
             {/* Categories */}
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-3">Categories</h3>
               <div className="space-y-3">
                 {categoriesLoading ? (
-                  // Loading skeleton for categories
                   <div className="space-y-2">
                     {[1, 2, 3].map((index) => (
                       <div key={index} className="animate-pulse">
@@ -349,71 +352,54 @@ const TopicsList = () => {
                   </div>
                 ) : categories.length > 0 ? (
                   categories.map((category) => (
-                  <div key={category.id}>
-                    <div
-                      // onClick={() => {
-                      //   const newValue = selectedCategory === category.id ? '' : category.id;
-                      //   console.log('Setting category:', newValue, 'Current:', selectedCategory);
-                      //   setSelectedCategory(newValue);
-                      // }}
-                      onClick={() => { // When restoring, DO NOT toggle category open/close
-                      if (restoring) {
-                        return; 
-                      }
-                      const newValue = selectedCategory === category.id ? '' : category.id;
-                      setSelectedCategory(newValue);
-                    }}
+                    <div key={category.id}>
+                      <div
+                        onClick={() => handleCategoryClick(category.id)}
+                        className="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-gray-100"
+                      >
+                        <div className="flex items-center justify-between w-full">
+                          <span className="text-gray-700 font-medium">{category.name}</span>
 
-                      className="flex items-center justify-between cursor-pointer p-2 rounded hover:bg-gray-100"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                                            {/* Category Name */}
-                        <span className="text-gray-700 font-medium">{category.name}</span>
+                          <div className="flex items-center space-x-2">
+                            {category.price != null && (
+                              <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-semibold">
+                                {category.price === 0 ? "Free" : `₹${category.price}`}
+                              </span>
+                            )}
 
-                        {/* Right side: Price + Arrow */}
-                        <div className="flex items-center space-x-2">
-                          {category.price != null && (
-                            <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-xs font-semibold">
-                              {category.price === 0 ? "Free" : `₹${category.price}`}
-                            </span>
-                          )}
-
-                          <svg 
-                            className={`w-4 h-4 transform transition-transform ${
-                              selectedCategory === category.id ? 'rotate-180' : ''
-                            }`} 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
+                            <svg 
+                              className={`w-4 h-4 transform transition-transform ${
+                                selectedCategory === category.id ? 'rotate-180' : ''
+                              }`} 
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </div>
                         </div>
                       </div>
+                      
+                      {/* Subcategories */}
+                      {selectedCategory === category.id && category.subcategories && category.subcategories.length > 0 && (
+                        <div className="ml-4 mt-2 space-y-1">
+                          {category.subcategories.map((sub) => (
+                            <label key={sub.id} className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-gray-50 rounded">
+                              <input
+                                type="radio"
+                                name="subcategory"
+                                value={sub.id}
+                                checked={selectedSubcategory === sub.id}
+                                onChange={(e) => setSelectedSubcategory(Number(e.target.value))}
+                                className="text-blue-600 focus:ring-blue-500"
+                              />
+                              <span className="text-gray-600 text-sm">{sub.name}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Subcategories */}
-                    {selectedCategory === category.id && (
-                      <div className="ml-4 mt-2 space-y-1">
-                        {category.subcategories?.map((sub) => (
-                          <label key={sub.id} className="flex items-center space-x-2 cursor-pointer p-1">
-                            <input
-                              type="radio"
-                              name="subcategory"
-                              value={sub.id}
-                              checked={selectedSubcategory == sub.id}
-                              onChange={(e) => {
-                                const value = isNaN(Number(e.target.value)) ? e.target.value : Number(e.target.value);
-                                setSelectedSubcategory(value);
-                              }}
-                              className="text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="text-gray-600 text-sm">{sub.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                   ))
                 ) : (
                   <div className="text-gray-500 text-sm">No categories available</div>
@@ -421,7 +407,7 @@ const TopicsList = () => {
               </div>
             </div>
 
- {/* Price Filter */}
+            {/* Price Filter */}
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-3">Price</h3>
               <div className="space-y-2">
@@ -444,6 +430,7 @@ const TopicsList = () => {
                 ))}
               </div>
             </div>
+
             {/* Clear Filters */}
             <div className="pt-4 border-t border-gray-200">
               <button
@@ -452,6 +439,7 @@ const TopicsList = () => {
                   setSelectedSubcategory('');
                   setPriceFilter('all');
                   setSearchQuery('');
+                  sessionStorage.clear();
                 }}
                 className="w-full bg-gray-200 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
               >
@@ -488,7 +476,7 @@ const TopicsList = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {transformedTopics.map((topic) => (
-                   <TopicCard 
+                    <TopicCard 
                       key={topic.id} 
                       topic={topic} 
                       isInWishlist={isInWishlist}
@@ -496,14 +484,12 @@ const TopicsList = () => {
                       showPrice={true}
                       className="min-h-[200px]"
                       selectedCategory={selectedCategory}
-                      // selectedSubcategory={selectedSubcategory}
-                      selectedSubCategory={selectedSubcategory}   // <-- updated
+                      selectedSubCategory={selectedSubcategory}
                       filters={{
                         priceFilter,
                         searchQuery
                       }}
                     />
-
                   ))}
                 </div>
                 
