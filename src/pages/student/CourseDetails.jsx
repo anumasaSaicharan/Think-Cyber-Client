@@ -106,10 +106,10 @@ const CourseDetails = () => {
       return;
     }
 
-    console.log('Enrolling in course:', { 
-      topicId: courseData.id, 
-      price: courseData.price, 
-      isFree: courseData.isFree 
+    console.log('Enrolling in course:', {
+      topicId: courseData.id,
+      price: courseData.price,
+      isFree: courseData.isFree
     });
 
     // Check if course is free
@@ -122,9 +122,9 @@ const CourseDetails = () => {
           email: userData.email,
           currency: currency === '₹' ? 'INR' : 'USD',
         });
-        
+
         console.log('Free enrollment response:', response);
-        
+
         if (response && response.success) {
           toast.success('Successfully enrolled in the free course!');
           setIsAlreadyEnrolled(true);
@@ -336,10 +336,10 @@ const CourseDetails = () => {
               <strong>Last Updated:</strong>{' '}
               {courseData.updatedAt
                 ? new Date(courseData.updatedAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                })
                 : 'N/A'}
             </span>
           </p>
@@ -363,7 +363,7 @@ const CourseDetails = () => {
             {courseData.description && courseData.description.trim() && (
               <div className="mb-6 w-full">
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">About this Course</h2>
-                 
+
               </div>
             )}
 
@@ -408,23 +408,20 @@ const CourseDetails = () => {
                   return (
                     <div
                       key={moduleIdx}
-                      className={`border border-gray-300 bg-white mb-2 rounded w-full ${
-                        isLocked ? 'opacity-60 pointer-events-none' : ''
-                      }`}
+                      className={`border border-gray-300 bg-white mb-2 rounded w-full ${isLocked ? 'opacity-60 pointer-events-none' : ''
+                        }`}
                     >
                       <div
-                        className={`flex items-center justify-between px-4 py-3 select-none bg-[#F7F9FD] w-full ${
-                          isLocked ? 'cursor-not-allowed' : 'cursor-pointer'
-                        }`}
+                        className={`flex items-center justify-between px-4 py-3 select-none bg-[#F7F9FD] w-full ${isLocked ? 'cursor-not-allowed' : 'cursor-pointer'
+                          }`}
                         onClick={() => !isLocked && toggleSection(moduleIdx)}
                       >
                         <div className="flex items-center gap-2 w-full">
                           <img
                             src={assets.down_arrow_icon}
                             alt="arrow icon"
-                            className={`transform transition-transform ${
-                              openSections[moduleIdx] ? 'rotate-180' : ''
-                            }`}
+                            className={`transform transition-transform ${openSections[moduleIdx] ? 'rotate-180' : ''
+                              }`}
                           />
                           <p className="font-medium md:text-base text-sm w-full">
                             {module.title ||
@@ -448,9 +445,8 @@ const CourseDetails = () => {
                       </div>
 
                       <div
-                        className={`overflow-hidden transition-all duration-300 ${
-                          openSections[moduleIdx] ? 'max-h-96' : 'max-h-0'
-                        }`}
+                        className={`overflow-y-auto scrollbar-visible transition-all duration-300 ${openSections[moduleIdx] ? 'max-h-96' : 'max-h-0'
+                          }`}
                         style={{
                           display: openSections[moduleIdx] ? 'block' : 'none',
                         }}
@@ -591,8 +587,8 @@ const CourseDetails = () => {
                     <ul className="list-disc ml-5 text-sm text-gray-600 w-full">
                       {Array.isArray(courseData.prerequisites)
                         ? courseData.prerequisites
-                            .filter((pre) => pre && pre.trim())
-                            .map((pre, idx) => <li key={idx}>{pre}</li>)
+                          .filter((pre) => pre && pre.trim())
+                          .map((pre, idx) => <li key={idx}>{pre}</li>)
                         : <li>{courseData.prerequisites}</li>}
                     </ul>
                   </div>
@@ -642,9 +638,9 @@ const CourseDetails = () => {
                     <span>
                       {courseData.createdAt
                         ? new Date(courseData.createdAt).toLocaleDateString(
-                            'en-US',
-                            { year: 'numeric', month: 'short', day: 'numeric' }
-                          )
+                          'en-US',
+                          { year: 'numeric', month: 'short', day: 'numeric' }
+                        )
                         : 'N/A'}
                     </span>
                   </div>
@@ -684,14 +680,13 @@ const CourseDetails = () => {
             <div className="flex items-center justify-center">
               {modalVideo.videoUrl &&
                 (modalVideo.videoUrl.includes('youtube.com') ||
-                modalVideo.videoUrl.includes('youtu.be') ? (
+                  modalVideo.videoUrl.includes('youtu.be') ? (
                   <iframe
                     width="420"
                     height="240"
-                    src={`https://www.youtube.com/embed/${
-                      modalVideo.videoUrl.split('v=')[1] ||
+                    src={`https://www.youtube.com/embed/${modalVideo.videoUrl.split('v=')[1] ||
                       modalVideo.videoUrl.split('/').pop()
-                    }`}
+                      }`}
                     title={modalVideo.title}
                     frameBorder="0"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

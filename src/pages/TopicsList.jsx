@@ -30,7 +30,7 @@ const TopicsList = () => {
     const stored = localStorage.getItem('wishlist');
     return stored ? JSON.parse(stored) : [];
   });
-  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' or 'asc'
+  const [sortOrder, setSortOrder] = useState('default'); // 'default', 'desc', or 'asc'
 
   // Fetch data
   useEffect(() => {
@@ -76,7 +76,7 @@ const TopicsList = () => {
   useEffect(() => {
     if (!categoriesLoading && categories.length > 0 && subcategories.length > 0) {
       setRestoring(true);
-      
+
       if (location.state) {
         // Restore from location.state
         if (location.state.fromCategory) {
@@ -170,8 +170,8 @@ const TopicsList = () => {
     if (selectedCategory) {
       filtered = filtered.filter(topic => {
         const categoryId = Number(selectedCategory);
-        return topic.categoryId === categoryId || 
-               topic.category?.id === categoryId;
+        return topic.categoryId === categoryId ||
+          topic.category?.id === categoryId;
       });
     }
 
@@ -180,27 +180,29 @@ const TopicsList = () => {
       filtered = filtered.filter(topic => {
         const subcategoryId = Number(selectedSubcategory);
         return topic.subcategoryId === subcategoryId ||
-               topic.subcategory?.id === subcategoryId;
+          topic.subcategory?.id === subcategoryId;
       });
     }
 
     // Filter by price
     if (priceFilter === 'free') {
-      filtered = filtered.filter(topic => 
+      filtered = filtered.filter(topic =>
         topic.price === 0 || topic.price < 1 || topic.isFree === true
       );
     } else if (priceFilter === 'paid') {
-      filtered = filtered.filter(topic => 
+      filtered = filtered.filter(topic =>
         topic.price > 0 && topic.isFree !== true
       );
     }
 
     // Sort by date
-    filtered.sort((a, b) => {
-      const dateA = new Date(a.created_at || a.createdAt || 0);
-      const dateB = new Date(b.created_at || b.createdAt || 0);
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+    if (sortOrder !== 'default') {
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.created_at || a.createdAt || 0);
+        const dateB = new Date(b.created_at || b.createdAt || 0);
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      });
+    }
 
     setFilteredTopics(filtered);
     setCurrentPage(1);
@@ -219,13 +221,13 @@ const TopicsList = () => {
     description: topic.description || `Description for ${topic.name || 'topic'}`,
     price: topic.price || (Math.random() > 0.5 ? 0 : Math.floor(Math.random() * 100) + 20),
     isFree: topic.isFree || topic.price === 0,
-    icon: topic.icon || (index % 3 === 0 ? assets.basic_security_icon : 
-                         index % 3 === 1 ? assets.business_owner_icon : 
-                         assets.follower_icon),
-    borderColor: index % 3 === 0 ? "border-blue-600" : 
-                 index % 3 === 1 ? "border-[#146DA5]" : "border-[#039198]",
-    textColor: index % 3 === 0 ? "text-blue-600" : 
-               index % 3 === 1 ? "text-[#146DA5]" : "text-[#039198]",
+    icon: topic.icon || (index % 3 === 0 ? assets.basic_security_icon :
+      index % 3 === 1 ? assets.business_owner_icon :
+        assets.follower_icon),
+    borderColor: index % 3 === 0 ? "border-blue-600" :
+      index % 3 === 1 ? "border-[#146DA5]" : "border-[#039198]",
+    textColor: index % 3 === 0 ? "text-blue-600" :
+      index % 3 === 1 ? "text-[#146DA5]" : "text-[#039198]",
   }));
 
   // Check if topic is in wishlist
@@ -245,10 +247,10 @@ const TopicsList = () => {
   // Handle category click
   const handleCategoryClick = (categoryId) => {
     if (restoring) return;
-    
+
     const newValue = selectedCategory === categoryId ? '' : categoryId;
     setSelectedCategory(newValue);
-    
+
     // Reset subcategory when toggling category closed
     if (newValue === '') {
       setSelectedSubcategory('');
@@ -265,21 +267,20 @@ const TopicsList = () => {
       >
         Previous
       </button>
-      
+
       {[...Array(totalPages)].map((_, index) => (
         <button
           key={index + 1}
           onClick={() => setCurrentPage(index + 1)}
-          className={`px-3 py-2 rounded-md ${
-            currentPage === index + 1
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-          }`}
+          className={`px-3 py-2 rounded-md ${currentPage === index + 1
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+            }`}
         >
           {index + 1}
         </button>
       ))}
-      
+
       <button
         onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
         disabled={currentPage === totalPages}
@@ -298,8 +299,8 @@ const TopicsList = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
         <p className="text-red-500 text-lg mb-4">{error}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
         >
           Retry
@@ -325,10 +326,9 @@ const TopicsList = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <div className={`${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-80 bg-white shadow-lg transition-transform duration-300 ease-in-out lg:shadow-none`}>
-          
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-80 bg-white shadow-lg transition-transform duration-300 ease-in-out lg:shadow-none`}>
+
           {/* Sidebar Header */}
           <div className="p-6 border-b border-gray-200">
             <div className="flex items-center justify-between">
@@ -379,12 +379,11 @@ const TopicsList = () => {
                               </span>
                             )}
 
-                            <svg 
-                              className={`w-4 h-4 transform transition-transform ${
-                                selectedCategory === category.id ? 'rotate-180' : ''
-                              }`} 
-                              fill="none" 
-                              stroke="currentColor" 
+                            <svg
+                              className={`w-4 h-4 transform transition-transform ${selectedCategory === category.id ? 'rotate-180' : ''
+                                }`}
+                              fill="none"
+                              stroke="currentColor"
                               viewBox="0 0 24 24"
                             >
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -392,7 +391,7 @@ const TopicsList = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Subcategories */}
                       {selectedCategory === category.id && category.subcategories && category.subcategories.length > 0 && (
                         <div className="ml-4 mt-2 space-y-1">
@@ -476,7 +475,7 @@ const TopicsList = () => {
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h1 className="text-3xl font-bold text-gray-800">All Topics</h1>
-                
+
                 {/* Sort by Date */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-gray-600">Sort by:</span>
@@ -485,12 +484,13 @@ const TopicsList = () => {
                     onChange={(e) => setSortOrder(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
+                    <option value="default">Default</option>
                     <option value="desc">Newest First</option>
                     <option value="asc">Oldest First</option>
                   </select>
                 </div>
               </div>
-               
+
               {/* Results count */}
               <div className="mt-4 text-gray-600">
                 Showing {filteredTopics.length} topic{filteredTopics.length !== 1 ? 's' : ''}
@@ -503,9 +503,9 @@ const TopicsList = () => {
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {transformedTopics.map((topic) => (
-                    <TopicCard 
-                      key={topic.id} 
-                      topic={topic} 
+                    <TopicCard
+                      key={topic.id}
+                      topic={topic}
                       isInWishlist={isInWishlist}
                       onWishlistClick={handleWishlistClick}
                       showPrice={true}
@@ -519,7 +519,7 @@ const TopicsList = () => {
                     />
                   ))}
                 </div>
-                
+
                 {/* Pagination */}
                 {totalPages > 1 && <Pagination />}
               </>
