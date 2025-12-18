@@ -673,24 +673,23 @@ const CourseDetails = () => {
       </div>
 
       {showVideoModal && modalVideo && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white rounded-lg shadow-lg p-6 relative max-w-xl w-full">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black bg-opacity-60 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 relative w-full max-w-4xl max-h-[90vh] flex flex-col">
             <button
-              className="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold"
+              className="absolute top-2 right-2 text-gray-600 hover:text-black text-2xl font-bold z-10"
               onClick={closeVideoModal}
             >
               &times;
             </button>
-            <h3 className="text-lg font-semibold mb-4">
+            <h3 className="text-lg font-semibold mb-4 pr-8">
               {modalVideo.title || 'Video'}
             </h3>
-            <div className="flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center overflow-hidden min-h-0">
               {modalVideo.videoUrl &&
                 (modalVideo.videoUrl.includes('youtube.com') ||
                   modalVideo.videoUrl.includes('youtu.be') ? (
                   <iframe
-                    width="420"
-                    height="240"
+                    className="w-full h-full aspect-video"
                     src={`https://www.youtube.com/embed/${modalVideo.videoUrl.split('v=')[1] ||
                       modalVideo.videoUrl.split('/').pop()
                       }`}
@@ -700,14 +699,20 @@ const CourseDetails = () => {
                     allowFullScreen
                   />
                 ) : (
-                  <video controls width="420">
+                  <video
+                    controls
+                    controlsList="nodownload"
+                    onContextMenu={(e) => e.preventDefault()}
+                    disablePictureInPicture
+                    className="max-w-full max-h-[70vh] w-auto h-auto object-contain"
+                  >
                     <source src={modalVideo.videoUrl} type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
                 ))}
             </div>
           </div>
-        </div>
+        </div >
       )}
     </>
   ) : (
