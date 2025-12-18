@@ -7,7 +7,7 @@ const apiClient = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-  } 
+  }
 });
 
 // Request interceptor
@@ -414,11 +414,25 @@ export const topicService = {
 
 };
 
+// Contact API Services
+export const contactService = {
+  // Send contact form
+  sendContactForm: async (data) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.CONTACT_US, data);
+      return response;
+    } catch (error) {
+      console.error('Error sending contact form:', error);
+      throw error;
+    }
+  }
+};
+
 // Export the configured axios instance for custom use
 // Auth API Services
 export const authService = {
 
-//get me
+  //get me
   getMe: async () => {
     try {
       const response = await apiClient.get(API_ENDPOINTS.GET_ME,); // Assuming /api/me returns current user based on HttpOnly cookie
@@ -427,7 +441,7 @@ export const authService = {
       console.error('Error fetching current user:', error);
       throw error;
     }
-  }, 
+  },
   // Login user
   loginUser: async (email, password) => {
     try {
@@ -493,31 +507,31 @@ export const authService = {
   },
 
   // In apiService.js - Add more logging
-searchTopics: async (query, params = {}) => {
-  try {
-    const searchParams = {
-      q: query,
-      limit: 20,
-      ...params
-    };
-    
-    const endpoint = API_ENDPOINTS.TOPICS_SEARCH;
-    console.log('Calling endpoint:', endpoint);
-    console.log('With params:', searchParams);
-    console.log('Full URL will be:', `${endpoint}?${new URLSearchParams(searchParams)}`);
-    
-    const response = await apiClient.get(endpoint, { 
-      params: searchParams 
-    });
-    
-    console.log('Response received:', response);
-    return response;
-  } catch (error) {
-    console.error('Error searching topics:', error);
-    console.error('Error response:', error.response?.data);
-    throw error;
+  searchTopics: async (query, params = {}) => {
+    try {
+      const searchParams = {
+        q: query,
+        limit: 20,
+        ...params
+      };
+
+      const endpoint = API_ENDPOINTS.TOPICS_SEARCH;
+      console.log('Calling endpoint:', endpoint);
+      console.log('With params:', searchParams);
+      console.log('Full URL will be:', `${endpoint}?${new URLSearchParams(searchParams)}`);
+
+      const response = await apiClient.get(endpoint, {
+        params: searchParams
+      });
+
+      console.log('Response received:', response);
+      return response;
+    } catch (error) {
+      console.error('Error searching topics:', error);
+      console.error('Error response:', error.response?.data);
+      throw error;
+    }
   }
-}
 
 };
 export default apiClient;

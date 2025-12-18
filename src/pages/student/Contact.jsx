@@ -1,6 +1,8 @@
 
 import React, { useState } from 'react';
 import { assets } from '../../assets/assets';
+import { contactService } from '../../services/apiService';
+import { toast } from 'react-toastify';
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -8,11 +10,25 @@ const Contact = () => {
     email: '',
     message: ''
   });
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    setLoading(true);
+    try {
+      await contactService.sendContactForm(formData);
+      toast.success('Message sent successfully! We will get back to you soon.');
+      setFormData({
+        name: '',
+        email: '',
+        message: ''
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -121,9 +137,10 @@ const Contact = () => {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200"
+                  disabled={loading}
+                  className={`w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-6 py-3 font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-200 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                  Send Message
+                  {loading ? 'Sending...' : 'Send Message'}
                 </button>
               </form>
             </div>

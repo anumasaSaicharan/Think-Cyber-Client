@@ -1,4 +1,4 @@
-import React, { useContext, useState, useRef, useEffect } from 'react'; 
+import React, { useContext, useState, useRef, useEffect } from 'react';
 import { AppContext } from '../../context/AppContext';
 import { assets } from '../../assets/assets';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -22,14 +22,14 @@ const Navbar = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [searchResults, setSearchResults] = React.useState([]);
   const [showResults, setShowResults] = React.useState(false);
- 
-   // Sync wishlist from localStorage on storage change (for multi-tab) and custom events
+
+  // Sync wishlist from localStorage on storage change (for multi-tab) and custom events
   useEffect(() => {
     const handleStorage = () => {
       const stored = localStorage.getItem('wishlist');
       setWishlist(stored ? JSON.parse(stored) : []);
     };
-    
+
     const handleWishlistUpdate = () => {
       console.log('Navbar - Custom wishlist update event received');
       const stored = localStorage.getItem('wishlist');
@@ -40,10 +40,10 @@ const Navbar = () => {
 
     // Listen for storage events (cross-tab)
     window.addEventListener('storage', handleStorage);
-    
+
     // Listen for custom wishlist update events (same-tab)
     window.addEventListener('wishlistUpdated', handleWishlistUpdate);
-    
+
     // Also check periodically to ensure sync
     const interval = setInterval(() => {
       const stored = localStorage.getItem('wishlist');
@@ -62,7 +62,7 @@ const Navbar = () => {
 
   console.log('Navbar - Wishlist:', wishlist);
   console.log('Navbar - Wishlist length:', wishlist.length);
-  if(userData && userData.isVerified) {
+  if (userData && userData.isVerified) {
     setShowLogin(true);
   }
 
@@ -72,7 +72,7 @@ const Navbar = () => {
         {/* Left side - Mobile Menu Button + Logo */}
         <div className="flex items-center gap-3">
           {/* Mobile Menu Button */}
-          <button 
+          <button
             className="md:hidden flex flex-col gap-1 p-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
@@ -97,16 +97,10 @@ const Navbar = () => {
 
         {/* Action Icons */}
         <div className="flex items-center gap-4">
-          {wishlist.length === 0 ? (
-            <button>
-              <img src={assets.favorite_icon} alt="Favorites" className="w-12 h-12" />
-            </button>
-          ) : (
-            <Link to="/wishlist">
-              <img src={assets.favorite_icon} alt="Favorites" className="w-12 h-12" />
-            </Link>
-          )}
-   
+          <Link to="/wishlist">
+            <img src={assets.favorite_icon} alt="Favorites" className="w-12 h-12" />
+          </Link>
+
           {/* Language Dropdown */}
           <div className="hidden sm:block">
             <LanguageDropdown assets={assets} />
@@ -132,7 +126,7 @@ const Navbar = () => {
           {/* Menu Header with Close Button */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
             <h2 className="text-xl font-semibold text-gray-800">Menu</h2>
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(false)}
               className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             >
@@ -148,7 +142,7 @@ const Navbar = () => {
             <a href="/about" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>About Us</a>
             <a href="/topics" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Topics</a>
             <a href="/contact" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact Us</a>
-            
+
             {/* Mobile Language Dropdown */}
             <div className="py-3">
               <h3 className="text-sm font-medium text-gray-500 mb-2">Language</h3>

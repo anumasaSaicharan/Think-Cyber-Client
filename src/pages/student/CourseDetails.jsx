@@ -575,6 +575,13 @@ const CourseDetails = () => {
               </button>
             )}
 
+            <button
+              onClick={goBack}
+              className="w-full py-3 rounded-lg border-2 border-gray-200 text-gray-500 font-bold text-lg hover:bg-gray-50 hover:text-gray-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              Return to Previous Page
+            </button>
+
             <div className="pt-6 w-full">
               {courseData.prerequisites &&
                 (Array.isArray(courseData.prerequisites)

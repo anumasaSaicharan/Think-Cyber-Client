@@ -20,12 +20,12 @@ const WishlistPage = () => {
     const updatedWishlist = wishlist.filter(item => item.id !== topicId);
     setWishlist(updatedWishlist);
     localStorage.setItem('wishlist', JSON.stringify(updatedWishlist));
-    
+
     // Dispatch custom event to notify other components (like Navbar) about wishlist changes
-    window.dispatchEvent(new CustomEvent('wishlistUpdated', { 
-      detail: { wishlist: updatedWishlist } 
+    window.dispatchEvent(new CustomEvent('wishlistUpdated', {
+      detail: { wishlist: updatedWishlist }
     }));
-    
+
     toast.success('Course removed from wishlist!');
   };
 
@@ -60,8 +60,8 @@ const WishlistPage = () => {
             <img src={assets.favorite_icon} alt="Empty Wishlist" className="w-16 h-16 mx-auto mb-4 opacity-50" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Your wishlist is empty</h3>
             <p className="text-gray-600 mb-6">Start adding courses to your wishlist to see them here.</p>
-            <Link 
-              to=" /" 
+            <Link
+              to="/"
               className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
             >
               Browse Topics
@@ -85,7 +85,7 @@ const WishlistPage = () => {
                       </svg>
                     </button>
                   </div>
-                  
+
                   {/* Course Title */}
                   <div className={`border-l-4 ${topic.borderColor} pl-3 mb-4`}>
                     <h3 className={`text-lg font-bold mb-2 ${topic.textColor} leading-tight`}>

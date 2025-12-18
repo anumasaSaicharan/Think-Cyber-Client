@@ -45,6 +45,9 @@ export const API_ENDPOINTS = {
   // User profile
   USER_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
   UPDATE_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
+  
+  // Contact Us
+  CONTACT_US: `${BASE_URL}${API_VERSION}/contact`,
 
   // Search topics
   TOPICS_SEARCH: `${BASE_URL}${API_VERSION}/topics/deep/search`,
