@@ -14,12 +14,12 @@ import FAQ from './pages/student/FAQPage';
 import WishlistPage from './pages/student/WishlistPage';
 import PrivacyPolicy from './pages/student/PrivacyPolicy';
 import TermsAndConditions from './pages/student/TermsAndConditions';
+import OurPlans from './pages/student/OurPlans';
 import { AppContextProvider } from './context/AppContext';
  import 'quill/dist/quill.snow.css'
 import 'react-toastify/dist/ReactToastify.css';
 import PaymentSuccess from './pages/student/PaymentSuccess';
 import PaymentCancel from './pages/student/PaymentCancel';
-import Enrollments from './components/student/enrollments'
  const App = () => {
 
   const isEducatorRoute = useMatch('/educator/*');
@@ -44,9 +44,10 @@ import Enrollments from './components/student/enrollments'
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />
-            <Route path="/enrollments" element={<Enrollments />} />
+            <Route path="/enrollments" element={<MyEnrollments />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsAndConditions />} />
+            <Route path="/our-plans" element={<OurPlans />} />
           </Routes>
         </main>
 

@@ -368,13 +368,35 @@ export const topicService = {
     }
   },
 
-  // Check if user is enrolled in a topic
-  checkUserEnrollment: async (userId, topicId) => {
+  // Check if user has access to a specific topic (handles bundle future topics)
+  checkTopicAccess: async (userId, topicId) => {
     try {
-      const response = await apiClient.get(API_ENDPOINTS.ENROLL_CHECK(userId, topicId));
+      const response = await apiClient.get(API_ENDPOINTS.USER_TOPIC_ACCESS(userId, topicId));
       return response;
     } catch (error) {
-      console.error('Error checking user enrollment:', error);
+      console.error('Error checking topic access:', error);
+      throw error;
+    }
+  },
+
+  // Get all accessible topics in a category for user (respects future_topics_included)
+  getCategoryTopicsAccess: async (userId, categoryId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.CATEGORY_TOPICS_ACCESS(userId, categoryId));
+      return response;
+    } catch (error) {
+      console.error('Error getting category topics access:', error);
+      throw error;
+    }
+  },
+
+  // Check if user has purchased a bundle
+  checkBundleEnrollment: async (userId, categoryId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.ENROLL_BUNDLE_CHECK(userId, categoryId));
+      return response;
+    } catch (error) {
+      console.error('Error checking bundle enrollment:', error);
       throw error;
     }
   },
@@ -408,6 +430,28 @@ export const topicService = {
       return response;
     } catch (error) {
       console.error('Error verifying payment:', error);
+      throw error;
+    }
+  },
+
+  // Create order (for both topics and bundles)
+  createOrder: async (orderData) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.CREATE_ORDER, orderData);
+      return response;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error;
+    }
+  },
+
+  // Verify bundle payment
+  verifyBundlePayment: async (paymentData) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.VERIFY_BUNDLE_PAYMENT, paymentData);
+      return response;
+    } catch (error) {
+      console.error('Error verifying bundle payment:', error);
       throw error;
     }
   }
@@ -534,4 +578,41 @@ export const authService = {
   }
 
 };
+
+// Features Plans (Subscription Plans) API Services
+export const featuresPlansService = {
+  // Get all active plans
+  getActivePlans: async () => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.FEATURES_PLANS_ACTIVE);
+      return response;
+    } catch (error) {
+      console.error('Error fetching active plans:', error);
+      throw error;
+    }
+  },
+
+  // Get all plans with pagination
+  getAllPlans: async (params = {}) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.FEATURES_PLANS, { params });
+      return response;
+    } catch (error) {
+      console.error('Error fetching all plans:', error);
+      throw error;
+    }
+  },
+
+  // Get plan by ID
+  getPlanById: async (id) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.FEATURES_PLANS_BY_ID(id));
+      return response;
+    } catch (error) {
+      console.error('Error fetching plan by ID:', error);
+      throw error;
+    }
+  }
+};
+
 export default apiClient;

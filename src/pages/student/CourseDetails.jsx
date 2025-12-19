@@ -165,21 +165,13 @@ const CourseDetails = () => {
             handler: async function (razorpayResponse) {
               try {
                 // Verify payment on backend
-                const verifyResponse = await fetch('http://localhost:8081/api/enrollments/verify-payment', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    razorpay_order_id: razorpayResponse.razorpay_order_id,
-                    razorpay_payment_id: razorpayResponse.razorpay_payment_id,
-                    razorpay_signature: razorpayResponse.razorpay_signature,
-                    userId: userData.id,
-                    topicId: courseData.id,
-                  }),
+                const verifyData = await topicService.verifyPayment({
+                  razorpay_order_id: razorpayResponse.razorpay_order_id,
+                  razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                  razorpay_signature: razorpayResponse.razorpay_signature,
+                  userId: userData.id,
+                  topicId: courseData.id,
                 });
-
-                const verifyData = await verifyResponse.json();
 
                 if (verifyData.success) {
                   toast.success('Payment successful! You are now enrolled.');
@@ -228,15 +220,28 @@ const CourseDetails = () => {
       return false;
     }
     try {
-      const res = await topicService.checkUserEnrollment(userData.id, id);
-      console.log('checkEnrollment response:', {
+      // First try the new endpoint that checks both direct enrollment and bundle future topics
+      const res = await topicService.checkTopicAccess(userData.id, id);
+      console.log('checkTopicAccess response:', {
         userId: userData.id,
         topicId: id,
         response: res,
-        enrolled: res?.enrolled,
-        paymentStatus: res?.payment_status
+        hasAccess: res?.hasAccess
       });
-      return res?.enrolled || false;
+      if (res?.hasAccess !== undefined) {
+        return res.hasAccess;
+      }
+      
+      // Fallback to old endpoint if new one fails
+      const fallbackRes = await topicService.checkUserEnrollment(userData.id, id);
+      console.log('checkUserEnrollment fallback response:', {
+        userId: userData.id,
+        topicId: id,
+        response: fallbackRes,
+        enrolled: fallbackRes?.enrolled,
+        paymentStatus: fallbackRes?.payment_status
+      });
+      return fallbackRes?.enrolled || false;
     } catch (error) {
       console.error('checkEnrollment error:', error);
       return false;
@@ -652,19 +657,17 @@ const CourseDetails = () => {
                     </span>
                   </div>
 
-                  {courseData.isFeatured ? (
-                    <div className="flex items-center gap-2 text-sm text-gray-700 mt-4 w-full">
-                      <span className="font-bold text-lg">Price:</span>
-                      <span>
-                        {courseData.price ? `₹${courseData.price}` : 'N/A'}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-sm text-gray-700 w-full">
-                      <span className="font-semibold">Free:</span>
-                      <span>{courseData.isFree ? 'Yes' : 'No'}</span>
-                    </div>
-                  )}
+                  {/* Price Display */}
+                  <div className="flex items-center gap-2 text-sm text-gray-700 mt-4 w-full">
+                    <span className="font-bold text-lg">Price:</span>
+                    <span className="text-lg font-semibold">
+                      {courseData.isFree || courseData.price === 0 || courseData.price === null ? (
+                        <span className="text-green-600">Free</span>
+                      ) : (
+                        <span className="text-blue-600">₹{courseData.price}</span>
+                      )}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

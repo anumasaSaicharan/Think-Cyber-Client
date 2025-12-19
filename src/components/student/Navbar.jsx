@@ -92,6 +92,7 @@ const Navbar = () => {
           <a href="/" className="hover:text-blue-600">Home</a>
           <a href="/about" className="hover:text-blue-600">About Us</a>
           <a href="/topics" className="hover:text-blue-600">Topics</a>
+          <a href="/our-plans" className="hover:text-blue-600">Features</a>
           <a href="/contact" className="hover:text-blue-600">Contact Us</a>
         </div>
 
@@ -141,6 +142,7 @@ const Navbar = () => {
             <a href="/" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Home</a>
             <a href="/about" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>About Us</a>
             <a href="/topics" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Topics</a>
+            <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a>
             <a href="/contact" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact Us</a>
 
             {/* Mobile Language Dropdown */}

@@ -1,101 +1,383 @@
 import { useContext, useEffect, useState } from 'react'
-import { AppContextProvider } from '../../context/AppContext'
-import axios from 'axios'
-import { Line } from 'rc-progress';
-import { toast } from 'react-toastify';
+import { AppContext } from '../../context/AppContext'
+import { categoriesService } from '../../services/apiService'
+import Loading from '../../components/student/Loading';
 
 const MyEnrollments = () => {
+    const { userData } = useContext(AppContext);
+    const [enrolledBundles, setEnrolledBundles] = useState([]);
+    const [enrolledTopics, setEnrolledTopics] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [categories, setCategories] = useState([]);
 
-    const { userData, enrolledCourses, fetchUserEnrolledCourses, navigate, backendUrl, getToken, calculateCourseDuration, calculateNoOfLectures } = useContext(AppContextProvider)
+    // Fetch enrolled bundles and individual topics
+    useEffect(() => {
+        const fetchEnrollments = async () => {
+            if (!userData || !userData.id) {
+                setLoading(false);
+                return;
+            }
 
-    const [progressArray, setProgressData] = useState([])
+            try {
+                setLoading(true);
 
-    const getCourseProgress = async () => {
-        try {
-            const token = await getToken();
+                // Fetch all categories WITH subcategories
+                const categoriesResponse = await categoriesService.getAllCategories().catch(() => ({
+                    data: []
+                }));
+                const categoriesData = categoriesResponse?.data || [];
+                setCategories(categoriesData);
 
-            // Use Promise.all to handle multiple async operations
-            const tempProgressArray = await Promise.all(
-                enrolledCourses.map(async (course) => {
-                    const { data } = await axios.post(
-                        `${backendUrl}/user/get-course-progress`,
-                        { courseId: course._id },
-                        { headers: { Authorization: `Bearer ${token}` } }
-                    );
+                // Fetch bundle enrollments
+                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8082';
+                
+                try {
+                    const bundleResponse = await fetch(`${backendUrl}/api/enrollments/user-bundles/${userData.id}`);
+                    if (bundleResponse.ok) {
+                        const bundleData = await bundleResponse.json();
+                        if (bundleData.bundles && Array.isArray(bundleData.bundles)) {
+                            setEnrolledBundles(bundleData.bundles);
+                        }
+                    }
+                } catch (bundleErr) {
+                    console.error('Bundle fetch error:', bundleErr);
+                }
 
-                    // Calculate total lectures
-                    let totalLectures = calculateNoOfLectures(course);
+                // Fetch individual topic enrollments
+                try {
+                    const topicsResponse = await fetch(`${backendUrl}/api/enrollments/user/${userData.id}`);
+                    if (topicsResponse.ok) {
+                        const topicsData = await topicsResponse.json();
+                        
+                        // We'll filter after bundles are loaded to exclude bundle topics
+                        // For now, just set the raw topics
+                        setEnrolledTopics(topicsData);
+                    }
+                } catch (topicsErr) {
+                    console.error('Topics fetch error:', topicsErr);
+                }
+                
+            } catch (err) {
+                console.error('Error in fetchEnrollments:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-                    const lectureCompleted = data.progressData ? data.progressData.lectureCompleted.length : 0;
-                    return { totalLectures, lectureCompleted };
-                })
-            );
+        if (userData?.id) {
+            fetchEnrollments();
+        }
+    }, [userData?.id]);
 
-            setProgressData(tempProgressArray);
-        } catch (error) {
-            toast.error(error.message);
+    // Filter out bundle topics to show only individual topic enrollments
+    const getIndividualTopics = () => {
+        if (!enrolledBundles.length || !enrolledTopics.length) {
+            return enrolledTopics;
+        }
+
+        // Get all category IDs from bundles
+        const bundleCategoryIds = new Set(enrolledBundles.map(b => b.category_id));
+        
+        // Return topics that are NOT from bundle categories
+        return enrolledTopics.filter(topic => !bundleCategoryIds.has(topic.category_id));
+    };
+
+    // Get category details
+    const getCategoryDetails = (categoryId) => {
+        return categories.find(cat => cat.id === categoryId);
+    };
+
+    // Get plan type badge styling
+    const getPlanTypeBadge = (planType) => {
+        switch (planType) {
+            case 'BUNDLE':
+                return { bg: 'bg-orange-100', text: 'text-orange-800', badge: 'bg-orange-500', icon: '📦' };
+            case 'FLEXIBLE':
+                return { bg: 'bg-blue-100', text: 'text-blue-800', badge: 'bg-blue-500', icon: '🔧' };
+            case 'INDIVIDUAL':
+                return { bg: 'bg-purple-100', text: 'text-purple-800', badge: 'bg-purple-500', icon: '📖' };
+            default:
+                return { bg: 'bg-gray-100', text: 'text-gray-800', badge: 'bg-gray-500', icon: '📚' };
         }
     };
 
-    useEffect(() => {
-        if (userData) {
-            fetchUserEnrolledCourses()
-        }
-    }, [userData])
+    // Format date
+    const formatDate = (date) => {
+        return new Date(date).toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
 
-    useEffect(() => {
+    // Calculate days remaining (1 year from enrollment)
+    const getDaysRemaining = (enrolledAt) => {
+        const enrolled = new Date(enrolledAt);
+        const expiry = new Date(enrolled);
+        expiry.setFullYear(expiry.getFullYear() + 1);
+        
+        const today = new Date();
+        const diffTime = expiry - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return { days: diffDays, expiryDate: expiry };
+    };
 
-        if (enrolledCourses.length > 0) {
-            getCourseProgress()
-        }
 
-    }, [enrolledCourses])
+    if (loading) {
+        return <Loading />;
+    }
+
+    const individualTopics = getIndividualTopics();
+    const totalEnrollments = enrolledBundles.length + individualTopics.length;
 
     return (
-        <>
+        <div className='min-h-screen bg-gray-50 py-10'>
+            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
+                
+                {/* Header */}
+                <div className='mb-10'>
+                    <h1 className='text-4xl font-bold text-gray-900 mb-2'>My Enrollments</h1>
+                    <p className='text-gray-600'>
+                        {totalEnrollments > 0 
+                            ? `You have ${enrolledBundles.length} bundle${enrolledBundles.length !== 1 ? 's' : ''} and ${individualTopics.length} individual topic${individualTopics.length !== 1 ? 's' : ''} enrolled`
+                            : 'You have no enrollments yet'
+                        }
+                    </p>
+                    
+                    {/* Subscription Validity Info */}
+                    <div className='mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded'>
+                        <p className='text-sm text-blue-800'>
+                            <strong>Subscription Validity:</strong> Each course subscription is valid for one year from the date of enrollment.
+                        </p>
+                    </div>
+                </div>
 
-            <div className='md:px-36 px-8 pt-10'>
+                {/* Main Content */}
+                {totalEnrollments > 0 ? (
+                    <div>
+                        {/* Bundle Enrollments Section */}
+                        {enrolledBundles.length > 0 && (
+                            <div className='mb-12'>
+                                <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2'>
+                                    <span>📦</span> Bundle Plans ({enrolledBundles.length})
+                                </h2>
+                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                                    {enrolledBundles.map((bundle) => {
+                                        // Category data now comes from the bundle directly
+                                        const category = {
+                                            id: bundle.category_id,
+                                            name: bundle.category_name,
+                                            emoji: bundle.emoji,
+                                            bundle_price: bundle.bundle_price,
+                                            plan_type: bundle.plan_type,
+                                            description: bundle.description
+                                        };
+                                        const styles = getPlanTypeBadge(category?.plan_type || 'BUNDLE');
 
-                <h1 className='text-2xl font-semibold'>My Enrollments</h1>
+                                        return (
+                                            <div 
+                                                key={bundle.id}
+                                                className={`${styles.bg} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border-l-4`}
+                                                style={{ borderLeftColor: 'currentColor' }}
+                                            >
+                                                {/* Header */}
+                                                <div className='flex items-start justify-between mb-4'>
+                                                    <div className='flex items-center gap-3'>
+                                                        <div className='text-3xl'>{category?.emoji || styles.icon}</div>
+                                                        <div className='flex-1'>
+                                                            <h3 className='text-lg font-bold text-gray-900'>{category?.name}</h3>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                <table className="md:table-auto table-fixed w-full overflow-hidden border mt-10">
-                    <thead className="text-gray-900 border-b border-gray-500/20 text-sm text-left max-sm:hidden">
-                        <tr>
-                            <th className="px-4 py-3 font-semibold truncate">Course</th>
-                            <th className="px-4 py-3 font-semibold truncate max-sm:hidden">Duration</th>
-                            <th className="px-4 py-3 font-semibold truncate max-sm:hidden">Completed</th>
-                            <th className="px-4 py-3 font-semibold truncate">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="text-gray-700">
-                        {enrolledCourses.map((course, index) => (
-                            <tr key={index} className="border-b border-gray-500/20">
-                                <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 ">
-                                    <img src={course.courseThumbnail} alt="" className="w-14 sm:w-24 md:w-28" />
-                                    <div className='flex-1'>
-                                        <p className='mb-1 max-sm:text-sm'>{course.courseTitle}</p>
-                                        <Line className='bg-gray-300 rounded-full' strokeWidth={2} percent={progressArray[index] ? (progressArray[index].lectureCompleted * 100) / progressArray[index].totalLectures : 0} />
-                                    </div>
-                                </td>
-                                <td className="px-4 py-3 max-sm:hidden">{calculateCourseDuration(course)}</td>
-                                <td className="px-4 py-3 max-sm:hidden">
-                                    {progressArray[index] && `${progressArray[index].lectureCompleted} / ${progressArray[index].totalLectures}`}
-                                    <span className='text-xs ml-2'>Lectures</span>
-                                </td>
-                                <td className="px-4 py-3 max-sm:text-right">
-                                    <button onClick={() => navigate('/player/' + course._id)} className='px-3 sm:px-5 py-1.5 sm:py-2 bg-blue-600 max-sm:text-xs text-white'>
-                                        {progressArray[index] && progressArray[index].lectureCompleted / progressArray[index].totalLectures === 1 ? 'Completed' : 'On Going'}
-                                    </button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                                                {/* Plan Type Badge */}
+                                                <div className='mb-4'>
+                                                    <span className={`${styles.badge} text-white px-3 py-1 rounded-full text-xs font-bold`}>
+                                                        {styles.icon} {category?.plan_type}
+                                                    </span>
+                                                </div>
 
+                                                {/* Stats */}
+                                                <div className='grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-gray-300'>
+                                                    <div>
+                                                        <p className='text-xs text-gray-600 font-semibold'>TOPICS</p>
+                                                        <p className={`text-2xl font-bold ${styles.text}`}>
+                                                            {bundle.accessible_topics_count || 0}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className='text-xs text-gray-600 font-semibold'>PRICE</p>
+                                                        <p className={`text-2xl font-bold ${styles.text}`}>
+                                                            ₹{category?.bundle_price || 0}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Details */}
+                                                <div className='space-y-2 mb-4 text-sm'>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Enrolled:</span>
+                                                        <span className='text-gray-900 font-medium'>{formatDate(bundle.enrolled_at)}</span>
+                                                    </div>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Valid Until:</span>
+                                                        <span className='text-gray-900 font-medium'>{formatDate(new Date(new Date(bundle.enrolled_at).getTime() + 365 * 24 * 60 * 60 * 1000))}</span>
+                                                    </div>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Future Topics:</span>
+                                                        <span className={`font-bold ${bundle.future_topics_included ? 'text-green-600' : 'text-red-600'}`}>
+                                                            {bundle.future_topics_included ? '✅ Included' : '🔒 Not Included'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Subcategories/Topics */}
+                                                {category?.subcategories && category.subcategories.length > 0 && (
+                                                    <div className='mb-4'>
+                                                        <p className='text-xs font-bold text-gray-700 mb-2'>SUBCATEGORIES:</p>
+                                                        <div className='flex flex-wrap gap-1'>
+                                                            {category.subcategories.slice(0, 3).map((sub) => (
+                                                                <span key={sub.id} className='text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded'>
+                                                                    {sub.name}
+                                                                </span>
+                                                            ))}
+                                                            {category.subcategories.length > 3 && (
+                                                                <span className='text-xs bg-gray-200 text-gray-800 px-2 py-1 rounded'>
+                                                                    +{category.subcategories.length - 3}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Action Button */}
+                                                <button 
+                                                    className={`w-full ${styles.badge} text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity`}
+                                                    onClick={() => {
+                                                        window.location.href = `/topics?category=${bundle.category_id}`;
+                                                    }}
+                                                >
+                                                    View Topics
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Individual Topics Section */}
+                        {individualTopics.length > 0 && (
+                            <div>
+                                <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2'>
+                                    <span>📚</span> Individual Topics ({individualTopics.length})
+                                </h2>
+                                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                                    {individualTopics.map((topic) => {
+                                        const styles = getPlanTypeBadge('INDIVIDUAL');
+                                        const { days, expiryDate } = getDaysRemaining(topic.enrolled_at);
+                                        const isExpiring = days <= 30;
+                                        const isExpired = days < 0;
+
+                                        return (
+                                            <div 
+                                                key={topic.id}
+                                                className={`${styles.bg} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border-l-4`}
+                                                style={{ borderLeftColor: 'currentColor' }}
+                                            >
+                                                {/* Header */}
+                                                <div className='flex items-start gap-3 mb-4'>
+                                                    <div className='text-3xl flex-shrink-0'>{topic.emoji || '📖'}</div>
+                                                    <div className='flex-1 min-w-0'>
+                                                        <h3 className='text-lg font-bold text-gray-900 line-clamp-2'>{topic.title}</h3>
+                                                    </div>
+                                                </div>
+
+                                                {/* Plan Type Badge */}
+                                                <div className='mb-4'>
+                                                    <span className={`${styles.badge} text-white px-3 py-1 rounded-full text-xs font-bold`}>
+                                                        {styles.icon} INDIVIDUAL
+                                                    </span>
+                                                </div>
+
+                                                {/* Price & Duration */}
+                                                <div className='grid grid-cols-2 gap-3 mb-4 pb-4 border-b border-gray-300'>
+                                                    <div>
+                                                        <p className='text-xs text-gray-600 font-semibold'>PRICE</p>
+                                                        <p className={`text-2xl font-bold ${!topic.price || parseFloat(topic.price) === 0 ? 'text-green-600' : styles.text}`}>
+                                                            {!topic.price || parseFloat(topic.price) === 0 ? 'Free' : `₹${parseFloat(topic.price).toFixed(2)}`}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <p className='text-xs text-gray-600 font-semibold'>DURATION</p>
+                                                        <p className={`text-2xl font-bold ${styles.text}`}>
+                                                            {topic.duration_minutes ? `${Math.round(topic.duration_minutes / 60)}h` : '—'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Enrollment & Validity Info */}
+                                                <div className='space-y-2 mb-4 text-sm'>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Enrolled:</span>
+                                                        <span className='text-gray-900 font-medium'>{formatDate(topic.enrolled_at)}</span>
+                                                    </div>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Valid Until:</span>
+                                                        <span className={`font-bold ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : 'text-green-600'}`}>
+                                                            {formatDate(expiryDate)}
+                                                        </span>
+                                                    </div>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Days Remaining:</span>
+                                                        <span className={`font-bold ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : 'text-green-600'}`}>
+                                                            {isExpired ? 'Expired' : days > 0 ? `${days} days` : 'Expires today'}
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {/* Description */}
+                                                <p className='text-sm text-gray-700 mb-4 line-clamp-2'>
+                                                    {topic.description || 'No description available'}
+                                                </p>
+
+                                                {/* Action Button */}
+                                                <button 
+                                                    className={`w-full ${isExpired ? 'bg-gray-400' : styles.badge} text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity`}
+                                                    onClick={() => {
+                                                        if (!isExpired) {
+                                                            window.location.href = `/course/${topic.topic_id}`;
+                                                        }
+                                                    }}
+                                                    disabled={isExpired}
+                                                >
+                                                    {isExpired ? 'Subscription Expired' : 'Learn Now'}
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className='text-center py-16'>
+                        <div className='text-6xl mb-4'>📚</div>
+                        <h3 className='text-2xl font-bold text-gray-900 mb-2'>No Enrollments Yet</h3>
+                        <p className='text-gray-600 mb-8'>You haven't enrolled in any plans yet. Start learning today!</p>
+                        <button 
+                            className='bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+                            onClick={() => {
+                                window.location.href = '/topics';
+                            }}
+                        >
+                            Browse Categories
+                        </button>
+                    </div>
+                )}
             </div>
+        </div>
+    );
+};
 
-        </>
-    )
-}
-
-export default MyEnrollments
+export default MyEnrollments;

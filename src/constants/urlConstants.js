@@ -1,6 +1,6 @@
 // URL Constants for API endpoints
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8082";
 const API_VERSION = "/api";
 
 export const API_ENDPOINTS = {
@@ -38,9 +38,14 @@ export const API_ENDPOINTS = {
   //enroll user
   ENROLL: `${BASE_URL}${API_VERSION}/enrollments/enroll`,
   ENROLL_CHECK: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/check/${userId}/${topicId}`,
+  ENROLL_BUNDLE_CHECK: (userId, categoryId) => `${BASE_URL}${API_VERSION}/enrollments/check-bundle/${userId}/${categoryId}`,
+  USER_TOPIC_ACCESS: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user-topic-access/${userId}/${topicId}`,
+  CATEGORY_TOPICS_ACCESS: (userId, categoryId) => `${BASE_URL}${API_VERSION}/enrollments/category-topics-access/${userId}/${categoryId}`,
   USER_ENROLLS: (userId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}`,
   USER_ENROLLS_TOPIC: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}/topic/${topicId}`,
   VERIFY_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-payment`,
+  CREATE_ORDER: `${BASE_URL}${API_VERSION}/enrollments/create-order`,
+  VERIFY_BUNDLE_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-bundle-payment`,
 
   // User profile
   USER_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
@@ -51,7 +56,11 @@ export const API_ENDPOINTS = {
 
   // Search topics
   TOPICS_SEARCH: `${BASE_URL}${API_VERSION}/topics/deep/search`,
-  
+
+  // Features Plans (Subscription Plans)
+  FEATURES_PLANS: `${BASE_URL}${API_VERSION}/features-plans`,
+  FEATURES_PLANS_ACTIVE: `${BASE_URL}${API_VERSION}/features-plans/active`,
+  FEATURES_PLANS_BY_ID: (id) => `${BASE_URL}${API_VERSION}/features-plans/${id}`,
 
 };
 

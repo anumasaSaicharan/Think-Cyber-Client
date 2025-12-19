@@ -10,28 +10,40 @@ const TopicCard = ({
   className = "",
   selectedCategory,
   selectedSubCategory,
-  filters
+  filters,
+  isEnrolled = false
 }) => {
   const navigate = useNavigate();
 
   return (
     <div className={`bg-white p-4 rounded-lg shadow-md border border-gray-200 relative min-h-[180px] flex flex-col ${className}`}>
-      {/* Wishlist Heart Icon */}
-      <span
-        className="absolute top-3 right-3 text-red-500 text-xl cursor-pointer"
-        onClick={() => onWishlistClick(topic)}
-        title={isInWishlist(topic.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
-      >
-        {isInWishlist(topic.id) ? (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="red" stroke="currentColor" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 17.5l-1.45-1.32C4.4 12.36 1 9.28 1 6.5A4.5 4.5 0 0 1 5.5 2c1.54 0 3.04.99 3.57 2.36h1.87C11.46 2.99 12.96 2 14.5 2A4.5 4.5 0 0 1 19 6.5c0 2.78-3.4 5.86-7.55 9.68L10 17.5z" />
-          </svg>
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
-            <path d="M10 17.5l-1.45-1.32C4.4 12.36 1 9.28 1 6.5A4.5 4.5 0 0 1 5.5 2c1.54 0 3.04.99 3.57 2.36h1.87C11.46 2.99 12.96 2 14.5 2A4.5 4.5 0 0 1 19 6.5c0 2.78-3.4 5.86-7.55 9.68L10 17.5z" />
-          </svg>
-        )}
-      </span>
+      {/* Enrolled Badge */}
+      {isEnrolled && (
+        <div className="absolute top-3 right-12 z-10">
+          <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+            ✓ Enrolled
+          </span>
+        </div>
+      )}
+
+      {/* Wishlist Heart Icon - Hidden when enrolled */}
+      {!isEnrolled && (
+        <span
+          className="absolute top-3 right-3 text-red-500 text-xl cursor-pointer"
+          onClick={() => onWishlistClick(topic)}
+          title={isInWishlist(topic.id) ? 'Remove from Wishlist' : 'Add to Wishlist'}
+        >
+          {isInWishlist(topic.id) ? (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="red" stroke="currentColor" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 17.5l-1.45-1.32C4.4 12.36 1 9.28 1 6.5A4.5 4.5 0 0 1 5.5 2c1.54 0 3.04.99 3.57 2.36h1.87C11.46 2.99 12.96 2 14.5 2A4.5 4.5 0 0 1 19 6.5c0 2.78-3.4 5.86-7.55 9.68L10 17.5z" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" xmlns="http://www.w3.org/2000/svg">
+              <path d="M10 17.5l-1.45-1.32C4.4 12.36 1 9.28 1 6.5A4.5 4.5 0 0 1 5.5 2c1.54 0 3.04.99 3.57 2.36h1.87C11.46 2.99 12.96 2 14.5 2A4.5 4.5 0 0 1 19 6.5c0 2.78-3.4 5.86-7.55 9.68L10 17.5z" />
+            </svg>
+          )}
+        </span>
+      )}
 
       {/* Price Badge */}
       {showPrice && (
