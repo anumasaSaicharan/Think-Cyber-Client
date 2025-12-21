@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { privacyService } from '../../services/apiService';
 import Loading from '../../components/student/Loading';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 const PrivacyPolicy = () => {
   const [privacyData, setPrivacyData] = useState(null);
@@ -12,20 +13,22 @@ const PrivacyPolicy = () => {
       try {
         setLoading(true);
         // Fetch all privacy policies and get the latest one
-        const response = await privacyService.getAllPrivacyPolicies({ 
-          limit: 1, 
-          sortBy: 'createdAt', 
-          sortOrder: 'desc' 
+        const response = await privacyService.getAllPrivacyPolicies({
+          limit: 1,
+          sortBy: 'createdAt',
+          sortOrder: 'desc'
         });
-        
+
         if (response?.data && response.data.length > 0) {
           setPrivacyData(response.data[0]);
         } else {
-          setError('No privacy policy found');
+          // If no data found, set empty object to trigger static content fallback
+          setPrivacyData({});
         }
       } catch (err) {
         console.error('Error fetching privacy policy:', err);
-        setError('Failed to load privacy policy');
+        // If error occurs, set empty object to trigger static content fallback
+        setPrivacyData({});
       } finally {
         setLoading(false);
       }
@@ -38,21 +41,7 @@ const PrivacyPolicy = () => {
     return <Loading />;
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!privacyData) {
     return (
@@ -88,10 +77,7 @@ const PrivacyPolicy = () => {
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="prose prose-lg max-w-none">
             {privacyData.content ? (
-              <div 
-                dangerouslySetInnerHTML={{ __html: privacyData.content }}
-                className="leading-relaxed text-gray-700"
-              />
+              <MarkdownRenderer content={privacyData.content} />
             ) : (
               <div className="space-y-6 text-gray-700 leading-relaxed">
                 <section>

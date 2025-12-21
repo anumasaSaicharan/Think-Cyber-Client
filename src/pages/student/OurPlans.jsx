@@ -43,28 +43,28 @@ const OurPlans = () => {
   const getPlanIcon = (type, planName = '') => {
     const name = (planName || '').toLowerCase();
     const planType = (type || '').toLowerCase();
-    
+
     // Rocket icon - for starter/launch plans
     const rocketIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
       </svg>
     );
-    
+
     // Shield icon - for basic/starter/free plans
     const shieldIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
       </svg>
     );
-    
+
     // Crown icon - for premium/pro/gold plans
     const crownIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.25 18.75l3.5-7 4.25 5 4.25-5 3.5 7M12 4.5l2 4-2 2.5-2-2.5 2-4zM6.5 8l1.25 3.75M17.5 8l-1.25 3.75" />
       </svg>
     );
-    
+
     // Diamond/Gem icon - for professional plans
     const diamondIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -72,14 +72,14 @@ const OurPlans = () => {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 9h20M7 9l5 13 5-13M7 9l5-7 5 7" />
       </svg>
     );
-    
+
     // Building icon - for enterprise/business plans
     const buildingIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
       </svg>
     );
-    
+
     // Star icon - for standard/regular plans
     const starIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,66 +88,66 @@ const OurPlans = () => {
     );
 
     const bundleIcon = (
-  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M20 7.5L12 3 4 7.5M20 7.5l-8 4.5m8-4.5v9L12 21m0-9L4 7.5m8 4.5v9M4 7.5v9l8 4.5"
-    />
-  </svg>
-);
+      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M20 7.5L12 3 4 7.5M20 7.5l-8 4.5m8-4.5v9L12 21m0-9L4 7.5m8 4.5v9M4 7.5v9l8 4.5"
+        />
+      </svg>
+    );
 
-const flexibleIcon = (
-  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M4 7h11a4 4 0 014 4v0"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M20 17H9a4 4 0 01-4-4v0"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M16 5l3 3-3 3M8 19l-3-3 3-3"
-    />
-  </svg>
-);
-
-
-const freeIcon = (
-  <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M12 8v13m-6-9h12m-6-4h.01M4 11h16v10a2 2 0 01-2 2H6a2 2 0 01-2-2V11z"
-    />
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M12 3c-1.657 0-3 1.343-3 3 0 1.657 1.343 2 3 2s3-.343 3-2c0-1.657-1.343-3-3-3z"
-    />
-  </svg>
-);
+    const flexibleIcon = (
+      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M4 7h11a4 4 0 014 4v0"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M20 17H9a4 4 0 01-4-4v0"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M16 5l3 3-3 3M8 19l-3-3 3-3"
+        />
+      </svg>
+    );
 
 
-    
+    const freeIcon = (
+      <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 8v13m-6-9h12m-6-4h.01M4 11h16v10a2 2 0 01-2 2H6a2 2 0 01-2-2V11z"
+        />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={1.5}
+          d="M12 3c-1.657 0-3 1.343-3 3 0 1.657 1.343 2 3 2s3-.343 3-2c0-1.657-1.343-3-3-3z"
+        />
+      </svg>
+    );
+
+
+
     // Trophy icon - for ultimate/platinum plans
     const trophyIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0116.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.016 6.016 0 01-3.27.972 6.016 6.016 0 01-3.27-.972" />
       </svg>
     );
-    
+
     // Academic/Education icon - for student/learner plans
     const academicIcon = (
       <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,7 +166,7 @@ const freeIcon = (
     if (name.includes('bundle') || name.includes('regular')) return bundleIcon;
     if (name.includes('flexible') || name.includes('regular')) return flexibleIcon;
     if (name.includes('free') || name.includes('free')) return freeIcon;
-    
+
     // Match by type
     if (planType === 'basic') return shieldIcon;
     if (planType === 'premium') return crownIcon;
@@ -174,7 +174,7 @@ const freeIcon = (
     if (planType === 'bundle') return bundleIcon;
     if (planType === 'flexible') return flexibleIcon;
     if (planType === 'free') return freeIcon;
-    
+
     // Default to star icon
     return starIcon;
   };
@@ -187,11 +187,11 @@ const freeIcon = (
       { bg: 'from-emerald-50 to-emerald-100', border: 'border-emerald-200', icon: 'text-emerald-500', button: 'bg-emerald-500 hover:bg-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
       { bg: 'from-orange-50 to-orange-100', border: 'border-orange-200', icon: 'text-orange-500', button: 'bg-orange-500 hover:bg-orange-600', badge: 'bg-orange-100 text-orange-700' },
     ];
-    
+
     // Try to match by type first
     const typeIndex = ['Basic', 'Premium', 'Enterprise', 'Standard'].indexOf(type);
     if (typeIndex !== -1) return styles[typeIndex];
-    
+
     // Fallback to index-based
     return styles[index % styles.length];
   };
@@ -229,7 +229,7 @@ const freeIcon = (
             </span>
           </h1>
           <p className="text-gray-600 text-base md:text-lg max-w-2xl mx-auto">
-            Discover the perfect plan that fits your learning journey. 
+            Discover the perfect plan that fits your learning journey.
             Each plan is crafted to provide you with the best cybersecurity education experience.
           </p>
         </div>
@@ -241,7 +241,7 @@ const freeIcon = (
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-red-600">{error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
             >
@@ -263,19 +263,18 @@ const freeIcon = (
 
         {/* Plans Grid */}
         {plans.length > 0 && (
-          <div className={`grid gap-6 md:gap-8 ${
-            plans.length === 1 ? 'max-w-md mx-auto' :
-            plans.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' :
-            plans.length === 3 ? 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
-            'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-          }`}>
+          <div className={`grid gap-6 md:gap-8 ${plans.length === 1 ? 'max-w-md mx-auto' :
+              plans.length === 2 ? 'md:grid-cols-2 max-w-3xl mx-auto' :
+                plans.length === 3 ? 'md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto' :
+                  'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            }`}>
             {plans.map((plan, index) => {
               const style = getCardStyle(plan.type, index);
               const features = parseFeatures(plan.features);
               const isSelected = selectedPlan === plan.id;
-              
+
               return (
-                <div 
+                <div
                   key={plan.id || index}
                   className={`relative bg-gradient-to-br ${style.bg} rounded-2xl border-2 ${style.border} 
                     shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2
@@ -343,7 +342,7 @@ const freeIcon = (
                     </div>
 
                     {/* CTA Button - always at bottom */}
-                    <button 
+                    {/* <button 
                       onClick={() => setSelectedPlan(plan.id === selectedPlan ? null : plan.id)}
                       className={`w-full py-3 px-6 ${style.button} text-white font-semibold rounded-xl 
                         transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl
@@ -353,7 +352,7 @@ const freeIcon = (
                       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                       </svg>
-                    </button>
+                    </button> */}
                   </div>
 
                   {/* Hover Glow Effect */}

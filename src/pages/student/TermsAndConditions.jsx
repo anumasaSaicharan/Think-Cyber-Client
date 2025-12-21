@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { termsService } from '../../services/apiService';
 import Loading from '../../components/student/Loading';
+import MarkdownRenderer from '../../components/MarkdownRenderer';
 
 const TermsAndConditions = () => {
   const [termsData, setTermsData] = useState(null);
@@ -17,24 +18,26 @@ const TermsAndConditions = () => {
           response = await termsService.getLatestTerms();
         } catch (latestError) {
           // Fallback to getting all terms and pick the first one
-          response = await termsService.getAllTerms({ 
-            limit: 1, 
-            sortBy: 'createdAt', 
-            sortOrder: 'desc' 
+          response = await termsService.getAllTerms({
+            limit: 1,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
           });
           if (response?.data && Array.isArray(response.data) && response.data.length > 0) {
             response = { data: response.data[0] };
           }
         }
-        
+
         if (response?.data) {
           setTermsData(response.data);
         } else {
-          setError('No terms and conditions found');
+          // If no data found, set empty object to trigger static content fallback
+          setTermsData({});
         }
       } catch (err) {
         console.error('Error fetching terms and conditions:', err);
-        setError('Failed to load terms and conditions');
+        // If error occurs, set empty object to trigger static content fallback
+        setTermsData({});
       } finally {
         setLoading(false);
       }
@@ -47,21 +50,7 @@ const TermsAndConditions = () => {
     return <Loading />;
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
+
 
   if (!termsData) {
     return (
@@ -102,10 +91,7 @@ const TermsAndConditions = () => {
         <div className="bg-white rounded-lg shadow-sm p-8">
           <div className="prose prose-lg max-w-none">
             {termsData.content ? (
-              <div 
-                dangerouslySetInnerHTML={{ __html: termsData.content }}
-                className="leading-relaxed text-gray-700"
-              />
+              <MarkdownRenderer content={termsData.content} />
             ) : (
               <div className="space-y-6 text-gray-700 leading-relaxed">
                 <section>

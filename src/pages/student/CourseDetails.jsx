@@ -231,7 +231,7 @@ const CourseDetails = () => {
       if (res?.hasAccess !== undefined) {
         return res.hasAccess;
       }
-      
+
       // Fallback to old endpoint if new one fails
       const fallbackRes = await topicService.checkUserEnrollment(userData.id, id);
       console.log('checkUserEnrollment fallback response:', {
@@ -325,9 +325,14 @@ const CourseDetails = () => {
             {courseData.title}
           </h1>
           <p className="text-sm md:text-base mb-5 w-full text-white">
-            {courseData.description && courseData.description.replace(/<[^>]*>/g, '').length > 200
-              ? courseData.description.replace(/<[^>]*>/g, '').slice(0, 200) + '...'
-              : courseData.description.replace(/<[^>]*>/g, '')}
+            {(() => {
+              // Strip HTML
+              let text = courseData.description ? courseData.description.replace(/<[^>]*>/g, '') : '';
+              // Strip Markdown (basic)
+              text = text.replace(/\*\*/g, '').replace(/__/g, '').replace(/^\s*•\s*/gm, '• ');
+
+              return text.length > 200 ? text.slice(0, 200) + '...' : text;
+            })()}
           </p>
           <p className="text-md text-white w-full">
             <span className="mr-4">
@@ -368,7 +373,7 @@ const CourseDetails = () => {
             {courseData.description && courseData.description.trim() && (
               <div className="mb-6 w-full">
                 <h2 className="text-xl font-semibold text-gray-900 mb-3">About this Course</h2>
-
+                <MarkdownRenderer content={courseData.description} />
               </div>
             )}
 
@@ -380,12 +385,9 @@ const CourseDetails = () => {
                     What you'll learn
                   </h2>
                   <div className="text-gray-700 text-sm w-full">
-                    <div
-                      className="w-full border border-gray-300 text-left p-4 rounded"
-                      dangerouslySetInnerHTML={{
-                        __html: courseData.learningObjectives,
-                      }}
-                    />
+                    <div className="w-full border border-gray-300 text-left p-4 rounded">
+                      <MarkdownRenderer content={courseData.learningObjectives} />
+                    </div>
                   </div>
                 </div>
               )}
@@ -458,7 +460,7 @@ const CourseDetails = () => {
                       >
                         {module.description && (
                           <div className="px-4 py-2 text-gray-700 text-sm border-t border-gray-200 w-full">
-                            {module.description}
+                            <MarkdownRenderer content={module.description} />
                           </div>
                         )}
 
@@ -545,23 +547,7 @@ const CourseDetails = () => {
             </div>
           </div>
 
-          {courseData.description &&
-            courseData.description.trim() &&
-            courseData.description !== '<p><br></p>' && (
-              <div className="pt-8 pb-8 w-full">
-                <h2 className="text-lg font-semibold text-blue-700 mb-2">
-                  Description
-                </h2>
-                <div className="px-0 py-2 text-gray-700 text-sm border-t border-gray-200 w-full">
-                  <div
-                    className="w-full border border-gray-300 text-left p-4"
-                    dangerouslySetInnerHTML={{
-                      __html: courseData.description,
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+
         </div>
 
         <div className="w-full md:max-w-course-card z-10 shadow-custom-card overflow-hidden bg-white min-w-0">
