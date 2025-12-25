@@ -14,7 +14,7 @@ const SignupModal = ({ isOpen, onClose, onVerificationNeeded }) => {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '' });
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
-  
+
   // Reset form when modal closes
   React.useEffect(() => {
     if (!isOpen) {
@@ -72,8 +72,8 @@ const SignupModal = ({ isOpen, onClose, onVerificationNeeded }) => {
   };
 
   const handleSubmit = async (e) => {
-   // //debugger;
-     e.preventDefault();
+    // //debugger;
+    e.preventDefault();
     if (!form.firstName || !form.lastName || !form.email) {
       toast.error('Please fill all fields');
       return;
@@ -88,16 +88,16 @@ const SignupModal = ({ isOpen, onClose, onVerificationNeeded }) => {
         email: form.email,
         firstname: form.firstName,
         lastname: form.lastName
-      }); 
+      });
       toast.success(res?.message || 'Signup successful!');
-      
+
       // Save email before resetting form
       const userEmail = form.email;
-      
+
       // Reset form
       setForm({ firstName: '', lastName: '', email: '' });
       setTermsAccepted(false);
-      
+
       // Trigger verification modal in parent component
       // Parent will handle closing this modal and opening verification modal
       if (onVerificationNeeded) {
@@ -136,21 +136,21 @@ const SignupModal = ({ isOpen, onClose, onVerificationNeeded }) => {
             <label className="block text-gray-700 mb-1 font-semibold">Email Address</label>
             <input name="email" type="email" value={form.email} onChange={handleChange} className="w-full border border-gray-300 rounded px-3 py-2 mb-4 focus:outline-none focus:border-blue-500" placeholder="Example@gmail.com" />
             <div className="flex items-center mb-4">
-              <input 
-                type="checkbox" 
-                className="mr-2" 
-                id="terms" 
+              <input
+                type="checkbox"
+                className="mr-2"
+                id="terms"
                 checked={termsAccepted}
                 onChange={(e) => setTermsAccepted(e.target.checked)}
                 required
               />
               <label htmlFor="terms" className="text-xs text-gray-600">
-                By Signing Up, You Agree To The <a href="#" className="underline text-blue-600">Terms & Conditions</a>
+                By Signing Up, You Agree To The <a href="https://thinkcyber.info/mobile/terms" target="_blank" rel="noopener noreferrer" className="underline text-blue-600">Terms & Conditions</a> & <a href="https://thinkcyber.info/mobile/privacy" target="_blank" rel="noopener noreferrer" className="underline text-blue-600">Privacy Policy</a>
                 <span className="text-red-500 ml-1">*</span>
               </label>
             </div>
             <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-blue-400 text-white py-2 rounded font-semibold mb-4" disabled={loading}>{loading ? 'Creating Account...' : 'Create Account'}</button>
-          </form> 
+          </form>
         </div>
       </div>
     </div>

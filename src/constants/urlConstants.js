@@ -10,6 +10,7 @@ export const API_ENDPOINTS = {
   SIGNUP: `${BASE_URL}${API_VERSION}/auth/signup`,
   RESEND_OTP: `${BASE_URL}${API_VERSION}/auth/resend-otp`,
   GET_ME: `${BASE_URL}${API_VERSION}/auth/me`,
+  DELETE_ACCOUNT: `${BASE_URL}${API_VERSION}/auth/delete-account`,
 
   // Homepage related endpoints
   HOMEPAGE: `${BASE_URL}${API_VERSION}/homepage`,
@@ -42,6 +43,7 @@ export const API_ENDPOINTS = {
   USER_TOPIC_ACCESS: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user-topic-access/${userId}/${topicId}`,
   CATEGORY_TOPICS_ACCESS: (userId, categoryId) => `${BASE_URL}${API_VERSION}/enrollments/category-topics-access/${userId}/${categoryId}`,
   USER_ENROLLS: (userId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}`,
+  USER_BUNDLES: (userId) => `${BASE_URL}${API_VERSION}/enrollments/user-bundles/${userId}`,
   USER_ENROLLS_TOPIC: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}/topic/${topicId}`,
   VERIFY_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-payment`,
   CREATE_ORDER: `${BASE_URL}${API_VERSION}/enrollments/create-order`,
@@ -50,7 +52,7 @@ export const API_ENDPOINTS = {
   // User profile
   USER_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
   UPDATE_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
-  
+
   // Contact Us
   CONTACT_US: `${BASE_URL}${API_VERSION}/contact`,
 

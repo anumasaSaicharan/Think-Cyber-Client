@@ -22,6 +22,7 @@ import PaymentSuccess from './pages/student/PaymentSuccess';
 import PaymentCancel from './pages/student/PaymentCancel';
 import MobilePrivacyPolicy from './pages/student/MobilePrivacyPolicy';
 import MobileTermsAndConditions from './pages/student/MobileTermsAndConditions';
+import Profile from './pages/student/Profile';
 const App = () => {
 
   const isEducatorRoute = useMatch('/educator/*');
@@ -48,6 +49,7 @@ const App = () => {
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
             <Route path="/payment-cancel" element={<PaymentCancel />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/enrollments" element={<MyEnrollments />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/terms" element={<TermsAndConditions />} />

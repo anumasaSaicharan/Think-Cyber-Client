@@ -412,6 +412,17 @@ export const topicService = {
     }
   },
 
+  // Get all bundles for a user
+  getUserBundles: async (userId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.USER_BUNDLES(userId));
+      return response;
+    } catch (error) {
+      console.error('Error fetching user bundles:', error);
+      throw error;
+    }
+  },
+
   // Get all topics for a user
   getUserEnrolledTopic: async (userId, topicId) => {
     try {
@@ -530,7 +541,7 @@ export const authService = {
   },
   resendOtp: async (email) => {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.RESEND_OTP, { email });
+      const response = await apiClient.post(API_ENDPOINTS.LOGIN, { email });
       return response;
     } catch (error) {
       console.error('Error resending OTP:', error);
@@ -546,6 +557,22 @@ export const authService = {
       return response;
     } catch (error) {
       console.error('Error verifying signup OTP:', error);
+      throw error;
+    }
+  },
+
+  // Delete account
+  deleteAccount: async (email, additionalData = {}) => {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.DELETE_ACCOUNT, {
+        data: {
+          email,
+          ...additionalData
+        }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error deleting account:', error);
       throw error;
     }
   },

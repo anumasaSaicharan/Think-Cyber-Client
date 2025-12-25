@@ -6,7 +6,7 @@ import Loading from '../../components/student/Loading';
 const Footer = () => {
 
 
-const [contact, setContact] = useState(null);
+  const [contact, setContact] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -36,10 +36,10 @@ const [contact, setContact] = useState(null);
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 py-8 border-b border-white/20">
           {/* Company Info Section */}
           <div className="lg:col-span-1 flex flex-col items-center md:items-start">
-            <img 
-              src={assets.logo_dark} 
-              alt="ThinkCyber Logo" 
-              className="w-32 h-auto mb-6" 
+            <img
+              src={assets.logo_dark}
+              alt="ThinkCyber Logo"
+              className="w-32 h-auto mb-6"
             />
             <p className="text-sm text-white/80 text-center md:text-left leading-relaxed mb-6 max-w-xs">
               ThinkCyber Education, built specifically for educational centers, is dedicated to engaging teaching and learners.
@@ -102,7 +102,7 @@ const [contact, setContact] = useState(null);
         {/* Footer Bottom */}
         <div className="flex flex-col md:flex-row justify-between items-center py-3 text-sm text-white/60">
           <p className="mb-4 md:mb-0 text-center md:text-left">
-            Copyright © 2025 ThinkCyber. All rights reserved.
+            Powered by Logiq Systems Hub Private Limited | Copyright © 2025 ThinkCyber. All rights reserved.
           </p>
           <div className="flex gap-6">
             <a href=" /terms" className="hover:text-white transition-colors">

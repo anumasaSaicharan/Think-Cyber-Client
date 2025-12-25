@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import { AppContext } from '../../context/AppContext'
-import { categoriesService } from '../../services/apiService'
+import { categoriesService, topicService } from '../../services/apiService'
 import Loading from '../../components/student/Loading';
 
 const MyEnrollments = () => {
@@ -29,34 +29,49 @@ const MyEnrollments = () => {
                 setCategories(categoriesData);
 
                 // Fetch bundle enrollments
-                const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8082';
-                
                 try {
-                    const bundleResponse = await fetch(`${backendUrl}/api/enrollments/user-bundles/${userData.id}`);
-                    if (bundleResponse.ok) {
-                        const bundleData = await bundleResponse.json();
-                        if (bundleData.bundles && Array.isArray(bundleData.bundles)) {
-                            setEnrolledBundles(bundleData.bundles);
-                        }
+                    const bundleRes = await topicService.getUserBundles(userData.id);
+                    let bundles = [];
+                    // Handle various possible response structures
+                    if (bundleRes?.bundles && Array.isArray(bundleRes.bundles)) {
+                        bundles = bundleRes.bundles;
+                    } else if (bundleRes?.data?.bundles && Array.isArray(bundleRes.data.bundles)) {
+                        bundles = bundleRes.data.bundles;
+                    } else if (bundleRes?.data && Array.isArray(bundleRes.data)) {
+                        bundles = bundleRes.data;
                     }
+                    setEnrolledBundles(bundles);
                 } catch (bundleErr) {
                     console.error('Bundle fetch error:', bundleErr);
                 }
 
                 // Fetch individual topic enrollments
                 try {
-                    const topicsResponse = await fetch(`${backendUrl}/api/enrollments/user/${userData.id}`);
-                    if (topicsResponse.ok) {
-                        const topicsData = await topicsResponse.json();
-                        
-                        // We'll filter after bundles are loaded to exclude bundle topics
-                        // For now, just set the raw topics
-                        setEnrolledTopics(topicsData);
+                    const topicsRes = await topicService.getUserEnrolledTopics(userData.id);
+                    let topics = [];
+                    // Handle standardized API response { success: true, data: [...] }
+                    if (topicsRes?.data && Array.isArray(topicsRes.data)) {
+                        topics = topicsRes.data;
+                    } else if (Array.isArray(topicsRes)) {
+                        topics = topicsRes;
                     }
+
+                    // Map API key names to component expectations
+                    // The API returns 'topic_title' but component expects 'title'
+                    const mappedTopics = topics.map(t => ({
+                        ...t,
+                        title: t.topic_title || t.title || t.name,
+                        description: t.topic_description || t.description,
+                        created_at: t.topic_created_at || t.created_at,
+                        // Ensure we have a valid ID since the API returns both row id and topic_id
+                        // We keep 'id' as enrollment ID for keys, but ensure topic_id is available
+                    }));
+
+                    setEnrolledTopics(mappedTopics);
                 } catch (topicsErr) {
                     console.error('Topics fetch error:', topicsErr);
                 }
-                
+
             } catch (err) {
                 console.error('Error in fetchEnrollments:', err);
             } finally {
@@ -69,22 +84,14 @@ const MyEnrollments = () => {
         }
     }, [userData?.id]);
 
-    // Filter out bundle topics to show only individual topic enrollments
+    // Show all enrolled topics
     const getIndividualTopics = () => {
-        if (!enrolledBundles.length || !enrolledTopics.length) {
-            return enrolledTopics;
-        }
-
-        // Get all category IDs from bundles
-        const bundleCategoryIds = new Set(enrolledBundles.map(b => b.category_id));
-        
-        // Return topics that are NOT from bundle categories
-        return enrolledTopics.filter(topic => !bundleCategoryIds.has(topic.category_id));
+        return enrolledTopics;
     };
 
     // Get category details
     const getCategoryDetails = (categoryId) => {
-        return categories.find(cat => cat.id === categoryId);
+        return categories.find(cat => Number(cat.id) === Number(categoryId));
     };
 
     // Get plan type badge styling
@@ -115,7 +122,7 @@ const MyEnrollments = () => {
         const enrolled = new Date(enrolledAt);
         const expiry = new Date(enrolled);
         expiry.setFullYear(expiry.getFullYear() + 1);
-        
+
         const today = new Date();
         const diffTime = expiry - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -133,17 +140,17 @@ const MyEnrollments = () => {
     return (
         <div className='min-h-screen bg-gray-50 py-10'>
             <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-                
+
                 {/* Header */}
                 <div className='mb-10'>
                     <h1 className='text-4xl font-bold text-gray-900 mb-2'>My Enrollments</h1>
                     <p className='text-gray-600'>
-                        {totalEnrollments > 0 
+                        {totalEnrollments > 0
                             ? `You have ${enrolledBundles.length} bundle${enrolledBundles.length !== 1 ? 's' : ''} and ${individualTopics.length} individual topic${individualTopics.length !== 1 ? 's' : ''} enrolled`
                             : 'You have no enrollments yet'
                         }
                     </p>
-                    
+
                     {/* Subscription Validity Info */}
                     <div className='mt-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded'>
                         <p className='text-sm text-blue-800'>
@@ -163,19 +170,27 @@ const MyEnrollments = () => {
                                 </h2>
                                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                                     {enrolledBundles.map((bundle) => {
-                                        // Category data now comes from the bundle directly
+                                        // Try to find category details from the fetched categories list as a fallback
+                                        const categoryDetails = getCategoryDetails(bundle.category_id) || {};
+
+                                        // Category data now comes from the bundle directly, but fallback to looked-up details
                                         const category = {
                                             id: bundle.category_id,
-                                            name: bundle.category_name,
-                                            emoji: bundle.emoji,
-                                            bundle_price: bundle.bundle_price,
-                                            plan_type: bundle.plan_type,
-                                            description: bundle.description
+                                            name: bundle.category_name || categoryDetails.name || `Bundle #${bundle.category_id}`,
+                                            emoji: bundle.emoji || categoryDetails.emoji,
+                                            bundle_price: bundle.bundle_price !== undefined ? bundle.bundle_price : categoryDetails.price,
+                                            plan_type: bundle.plan_type || categoryDetails.plan_type,
+                                            description: bundle.description || categoryDetails.description
                                         };
                                         const styles = getPlanTypeBadge(category?.plan_type || 'BUNDLE');
 
+                                        // Calculate expiry
+                                        const { days, expiryDate } = getDaysRemaining(bundle.enrolled_at);
+                                        const isExpiring = days <= 30;
+                                        const isExpired = days < 0;
+
                                         return (
-                                            <div 
+                                            <div
                                                 key={bundle.id}
                                                 className={`${styles.bg} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border-l-4`}
                                                 style={{ borderLeftColor: 'currentColor' }}
@@ -221,7 +236,15 @@ const MyEnrollments = () => {
                                                     </div>
                                                     <div className='flex justify-between'>
                                                         <span className='text-gray-700'>Valid Until:</span>
-                                                        <span className='text-gray-900 font-medium'>{formatDate(new Date(new Date(bundle.enrolled_at).getTime() + 365 * 24 * 60 * 60 * 1000))}</span>
+                                                        <span className={`font-bold ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : 'text-green-600'}`}>
+                                                            {formatDate(expiryDate)}
+                                                        </span>
+                                                    </div>
+                                                    <div className='flex justify-between'>
+                                                        <span className='text-gray-700'>Status:</span>
+                                                        <span className={`font-bold ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : 'text-green-600'}`}>
+                                                            {isExpired ? 'Expired' : days > 0 ? `${days} days left` : 'Expires today'}
+                                                        </span>
                                                     </div>
                                                     <div className='flex justify-between'>
                                                         <span className='text-gray-700'>Future Topics:</span>
@@ -251,13 +274,16 @@ const MyEnrollments = () => {
                                                 )}
 
                                                 {/* Action Button */}
-                                                <button 
-                                                    className={`w-full ${styles.badge} text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity`}
+                                                <button
+                                                    className={`w-full ${isExpired ? 'bg-gray-400 cursor-not-allowed' : styles.badge + ' hover:opacity-90'} text-white py-2 rounded-lg font-semibold text-sm transition-opacity`}
                                                     onClick={() => {
-                                                        window.location.href = `/topics?category=${bundle.category_id}`;
+                                                        if (!isExpired) {
+                                                            window.location.href = `/topics?category=${bundle.category_id}`;
+                                                        }
                                                     }}
+                                                    disabled={isExpired}
                                                 >
-                                                    View Topics
+                                                    {isExpired ? 'Subscription Expired' : 'View Topics'}
                                                 </button>
                                             </div>
                                         );
@@ -266,11 +292,11 @@ const MyEnrollments = () => {
                             </div>
                         )}
 
-                        {/* Individual Topics Section */}
+                        {/* Topics Section */}
                         {individualTopics.length > 0 && (
                             <div>
                                 <h2 className='text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2'>
-                                    <span>📚</span> Individual Topics ({individualTopics.length})
+                                    <span>📚</span> Enrolled Topics ({individualTopics.length})
                                 </h2>
                                 <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                                     {individualTopics.map((topic) => {
@@ -280,7 +306,7 @@ const MyEnrollments = () => {
                                         const isExpired = days < 0;
 
                                         return (
-                                            <div 
+                                            <div
                                                 key={topic.id}
                                                 className={`${styles.bg} rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow duration-300 border-l-4`}
                                                 style={{ borderLeftColor: 'currentColor' }}
@@ -308,12 +334,12 @@ const MyEnrollments = () => {
                                                             {!topic.price || parseFloat(topic.price) === 0 ? 'Free' : `₹${parseFloat(topic.price).toFixed(2)}`}
                                                         </p>
                                                     </div>
-                                                    <div>
+                                                    {/* <div>
                                                         <p className='text-xs text-gray-600 font-semibold'>DURATION</p>
                                                         <p className={`text-2xl font-bold ${styles.text}`}>
                                                             {topic.duration_minutes ? `${Math.round(topic.duration_minutes / 60)}h` : '—'}
                                                         </p>
-                                                    </div>
+                                                    </div> */}
                                                 </div>
 
                                                 {/* Enrollment & Validity Info */}
@@ -329,9 +355,9 @@ const MyEnrollments = () => {
                                                         </span>
                                                     </div>
                                                     <div className='flex justify-between'>
-                                                        <span className='text-gray-700'>Days Remaining:</span>
+                                                        <span className='text-gray-700'>Status:</span>
                                                         <span className={`font-bold ${isExpired ? 'text-red-600' : isExpiring ? 'text-orange-600' : 'text-green-600'}`}>
-                                                            {isExpired ? 'Expired' : days > 0 ? `${days} days` : 'Expires today'}
+                                                            {isExpired ? 'Expired' : days > 0 ? `${days} days left` : 'Expires today'}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -342,8 +368,8 @@ const MyEnrollments = () => {
                                                 </p>
 
                                                 {/* Action Button */}
-                                                <button 
-                                                    className={`w-full ${isExpired ? 'bg-gray-400' : styles.badge} text-white py-2 rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity`}
+                                                <button
+                                                    className={`w-full ${isExpired ? 'bg-gray-400 cursor-not-allowed' : styles.badge + ' hover:opacity-90'} text-white py-2 rounded-lg font-semibold text-sm transition-opacity`}
                                                     onClick={() => {
                                                         if (!isExpired) {
                                                             window.location.href = `/course/${topic.topic_id}`;
@@ -365,7 +391,7 @@ const MyEnrollments = () => {
                         <div className='text-6xl mb-4'>📚</div>
                         <h3 className='text-2xl font-bold text-gray-900 mb-2'>No Enrollments Yet</h3>
                         <p className='text-gray-600 mb-8'>You haven't enrolled in any plans yet. Start learning today!</p>
-                        <button 
+                        <button
                             className='bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors'
                             onClick={() => {
                                 window.location.href = '/topics';

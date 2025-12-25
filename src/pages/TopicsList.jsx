@@ -12,6 +12,8 @@ const TopicsList = () => {
   const location = useLocation();
   const { userData, currency } = useContext(AppContext);
   const hasRestoredRef = useRef(false);
+  const checkedTopicIdsRef = useRef(new Set());
+  const checkEnrollmentTimeoutRef = useRef(null);
 
   // State declarations
   const [topicsData, setTopicsData] = useState([]);
@@ -44,7 +46,7 @@ const TopicsList = () => {
       try {
         setLoading(true);
         setCategoriesLoading(true);
-        
+
         // Clear old navigation markers on fresh load (but keep filters)
         sessionStorage.removeItem('fromCategory');
         sessionStorage.removeItem('fromSubCategory');
@@ -99,7 +101,7 @@ const TopicsList = () => {
           console.error('Error refetching topics:', err);
         }
       };
-      
+
       // Small debounce to avoid too many requests
       const timer = setTimeout(refetchTopics, 300);
       return () => clearTimeout(timer);
@@ -111,7 +113,7 @@ const TopicsList = () => {
     if (!categoriesLoading && categories.length > 0 && !hasRestoredRef.current) {
       hasRestoredRef.current = true;
       setRestoring(true);
-      
+
       let hasSavedCategory = false;
       let categoryToRestore = null;
       let subcategoryToRestore = null;
@@ -121,7 +123,7 @@ const TopicsList = () => {
       // Priority 1: Check location.state (from goBack navigation)
       if (location.state && (location.state.fromCategory || location.state.fromSubCategory)) {
         console.log('Restoring from location.state:', location.state);
-        
+
         if (location.state.fromCategory) {
           categoryToRestore = Number(location.state.fromCategory);
           hasSavedCategory = true;
@@ -145,7 +147,7 @@ const TopicsList = () => {
         // Only use sessionStorage if we have a fromCategory or fromSubCategory marker (meaning we navigated within the app)
         const savedFromCategory = sessionStorage.getItem('fromCategory');
         const savedFromSubcategory = sessionStorage.getItem('fromSubCategory');
-        
+
         if (savedFromCategory || savedFromSubcategory) {
           console.log('Restoring from sessionStorage (app navigation)');
           if (savedFromCategory) {
@@ -165,7 +167,7 @@ const TopicsList = () => {
           // Fresh page load - don't restore from sessionStorage, use defaults
           console.log('Fresh page load - using default first category');
         }
-        
+
         const savedPriceFilter = sessionStorage.getItem('priceFilter') || 'all';
         const savedSearchQuery = sessionStorage.getItem('searchQuery') || '';
         priceFilterToRestore = savedPriceFilter;
@@ -192,7 +194,7 @@ const TopicsList = () => {
       if (subcategoryToRestore) {
         setSelectedSubcategory(subcategoryToRestore);
       }
-      
+
       setPriceFilter(priceFilterToRestore);
       setSearchQuery(searchQueryToRestore);
 
@@ -242,13 +244,42 @@ const TopicsList = () => {
   }, [wishlist]);
 
   // Check enrollment status for all topics when user logs in, topics change, or category changes
+  // Check enrollment status for all topics when user logs in, topics change, or category changes
   useEffect(() => {
-    if (userData && userData.id && topicsData.length > 0) {
-      checkTopicEnrollments(topicsData);
-    } else {
+    // Clear checked cache and enrolled topics if irrelevant (no user)
+    if (!userData || !userData.id) {
+      checkedTopicIdsRef.current.clear();
       setEnrolledTopics(new Set());
+      return;
     }
-  }, [userData, topicsData, selectedCategory]);
+
+    if (filteredTopics.length > 0) {
+      // Debounce the check to prevent multiple calls during rapid state updates/renders
+      if (checkEnrollmentTimeoutRef.current) {
+        clearTimeout(checkEnrollmentTimeoutRef.current);
+      }
+
+      checkEnrollmentTimeoutRef.current = setTimeout(() => {
+        // Optimize: Only check enrollment for visible topics (current page) 
+        const indexOfLastTopic = currentPage * topicsPerPage;
+        const indexOfFirstTopic = indexOfLastTopic - topicsPerPage;
+        const currentVisibleTopics = filteredTopics.slice(indexOfFirstTopic, indexOfLastTopic);
+
+        checkTopicEnrollments(currentVisibleTopics);
+      }, 500); // 500ms delay to ensure state is settled
+    }
+
+    return () => {
+      if (checkEnrollmentTimeoutRef.current) {
+        clearTimeout(checkEnrollmentTimeoutRef.current);
+      }
+    };
+  }, [userData, filteredTopics, currentPage, selectedCategory, topicsPerPage]);
+
+  // Clear cache when checking mode might change significantly
+  useEffect(() => {
+    checkedTopicIdsRef.current.clear();
+  }, [selectedCategory]);
 
   // Reset subcategory when category changes (not during restoration)
   useEffect(() => {
@@ -273,9 +304,9 @@ const TopicsList = () => {
     if (selectedCategory) {
       filtered = filtered.filter(topic => {
         const categoryId = Number(selectedCategory);
-        return topic.categoryId === categoryId || 
-               topic.category?.id === categoryId ||
-               topic.category_id === categoryId;
+        return topic.categoryId === categoryId ||
+          topic.category?.id === categoryId ||
+          topic.category_id === categoryId;
       });
     }
 
@@ -284,8 +315,8 @@ const TopicsList = () => {
       filtered = filtered.filter(topic => {
         const subcategoryId = Number(selectedSubcategory);
         return topic.subcategoryId === subcategoryId ||
-               topic.subcategory?.id === subcategoryId ||
-               topic.subcategory_id === subcategoryId;
+          topic.subcategory?.id === subcategoryId ||
+          topic.subcategory_id === subcategoryId;
       });
     }
 
@@ -323,9 +354,9 @@ const TopicsList = () => {
     if (!categoryId) return 0;
     return topicsData.filter(topic => {
       const catId = Number(categoryId);
-      return topic.categoryId === catId || 
-             topic.category?.id === catId ||
-             topic.category_id === catId;
+      return topic.categoryId === catId ||
+        topic.category?.id === catId ||
+        topic.category_id === catId;
     }).length;
   };
 
@@ -361,31 +392,66 @@ const TopicsList = () => {
   const checkTopicEnrollments = async (topicsToCheck) => {
     if (!userData || !userData.id || topicsToCheck.length === 0) {
       console.log('checkTopicEnrollments: Missing user data or no topics to check');
-      setEnrolledTopics(new Set());
+      // Don't clear enrolled topics here as we might just be viewing a page with no topics
       return;
     }
 
     try {
-      const enrolledSet = new Set();
-      
+      const newEnrollments = new Set();
+
+      // Filter out topics we've already checked to prevent duplicate API calls
+      // UNLESS we are in category mode where we want to do a batch check for efficiency
+      let topicsToProcess = [];
+
+      if (selectedCategory) {
+        // In category mode, let batch check run if not recently checked
+        topicsToProcess = topicsToCheck;
+      } else {
+        // Individual checks: Strict filtering
+        topicsToProcess = topicsToCheck.filter(topic => !checkedTopicIdsRef.current.has(topic.id));
+
+        if (topicsToProcess.length === 0) {
+          // All visible topics already checked
+          return;
+        }
+      }
+
       // If we have a selected category, use the batch endpoint for better performance
       if (selectedCategory) {
         try {
+          const categoryIdInt = Number(selectedCategory);
+          const catKey = `cat_${categoryIdInt}`;
+
+          if (checkedTopicIdsRef.current.has(catKey)) {
+            return;
+          }
+
           console.log('Checking category access for user:', userData.id, 'category:', selectedCategory);
           const categoryAccessRes = await topicService.getCategoryTopicsAccess(userData.id, selectedCategory);
           console.log('Category topics access response:', categoryAccessRes);
-          
+
+          // Mark category as checked
+          checkedTopicIdsRef.current.add(catKey);
+          // Mark all visible topics as checked to prevent future re-checks
+          topicsToCheck.forEach(t => checkedTopicIdsRef.current.add(t.id));
+
           // Check both possible field names from backend
           const accessibleTopics = categoryAccessRes?.accessibleTopics || categoryAccessRes?.accessible_topics || [];
           console.log('Accessible topics from backend:', accessibleTopics);
-          
+
           if (Array.isArray(accessibleTopics) && accessibleTopics.length > 0) {
             console.log('Found', accessibleTopics.length, 'accessible topics');
             accessibleTopics.forEach(topicId => {
-              enrolledSet.add(topicId);
+              newEnrollments.add(topicId);
             });
-            setEnrolledTopics(enrolledSet);
-            console.log('Updated enrolled topics set:', enrolledSet);
+
+            // Merge with existing enrollments
+            setEnrolledTopics(prev => {
+              const next = new Set(prev);
+              newEnrollments.forEach(id => next.add(id));
+              return next;
+            });
+            console.log('Updated enrolled topics set via batch category check');
             return;
           } else {
             console.log('No accessible topics found in category response');
@@ -395,68 +461,71 @@ const TopicsList = () => {
           // Fall through to individual checks
         }
       }
-      
+
       // Fallback: Check enrollment for each topic individually (slower but still works)
-      console.log('Falling back to individual topic checks for', topicsToCheck.length, 'topics');
-      for (const topic of topicsToCheck) {
+      console.log('Checking individual topic access for', topicsToProcess.length, 'topics');
+      for (const topic of topicsToProcess) {
         try {
+          // Double check ref
+          if (checkedTopicIdsRef.current.has(topic.id)) continue;
+
+          // Mark as checked to prevent parallel requests
+          checkedTopicIdsRef.current.add(topic.id);
+
+          // Skip if already known to be enrolled (optimization)
+          if (enrolledTopics.has(topic.id)) {
+            continue;
+          }
+
           // Use new endpoint that handles both direct enrollment and bundle future topics
           const res = await topicService.checkTopicAccess(userData.id, topic.id);
           if (res?.hasAccess) {
-            enrolledSet.add(topic.id);
+            newEnrollments.add(topic.id);
           }
         } catch (error) {
           // Fallback to old endpoint if new one fails
           try {
             const res = await topicService.checkUserEnrollment(userData.id, topic.id);
             if (res?.enrolled) {
-              enrolledSet.add(topic.id);
+              newEnrollments.add(topic.id);
             }
           } catch (fallbackError) {
             console.error(`Error checking enrollment for topic ${topic.id}:`, fallbackError);
           }
         }
       }
-      
-      console.log('Final enrolled topics set:', enrolledSet);
-      setEnrolledTopics(enrolledSet);
+
+      // Merge new enrollments with existing ones
+      if (newEnrollments.size > 0) {
+        console.log('Found new enrollments:', newEnrollments);
+        setEnrolledTopics(prev => {
+          const next = new Set(prev);
+          newEnrollments.forEach(id => next.add(id));
+          return next;
+        });
+      }
     } catch (error) {
       console.error('Error checking topic enrollments:', error);
-      setEnrolledTopics(new Set());
+      // Don't clear on error, keep what we have
     }
   };
 
-  // Check bundle enrollment and get accessible topics
+  // Check bundle enrollment
   const checkBundleEnrollment = async (categoryId) => {
     if (!userData || !userData.id) {
       setIsBundleEnrolled(false);
       return;
     }
-    
+
     try {
       setCheckingBundleEnrollment(true);
-      
-      // Check if user has bundle purchase and get all accessible topics in one call
-      const accessRes = await topicService.getCategoryTopicsAccess(userData.id, categoryId);
-      console.log('Category topics access:', accessRes);
-      
-      // Check both possible field names from backend
-      const accessibleTopics = accessRes?.accessibleTopics || accessRes?.accessible_topics || [];
-      
-      // If we got accessible_topics, user has bundle enrollment with future topics access
-      if (Array.isArray(accessibleTopics) && accessibleTopics.length > 0) {
-        setIsBundleEnrolled(true);
-        
-        // Update enrolled topics set immediately with all accessible topics
-        const enrolledSet = new Set(accessibleTopics);
-        setEnrolledTopics(enrolledSet);
-        console.log('Bundle enrolled with accessible topics:', enrolledSet);
-      } else {
-        // Try old endpoint for basic bundle check
-        const res = await topicService.checkBundleEnrollment(userData.id, categoryId);
-        console.log('Bundle enrollment check:', res);
-        setIsBundleEnrolled(res?.enrolled || false);
-      }
+
+      // Check specific bundle enrollment status
+      const res = await topicService.checkBundleEnrollment(userData.id, categoryId);
+      console.log('Bundle enrollment check:', res);
+      // Ensure we treat the response correctly based on backend structure
+      setIsBundleEnrolled(res?.enrolled === true || res?.status === 'active');
+
     } catch (error) {
       console.error('Error checking bundle enrollment:', error);
       setIsBundleEnrolled(false);
@@ -510,7 +579,7 @@ const TopicsList = () => {
   const handleBuyBundle = async (category) => {
     // Check if user is logged in
     if (!userData || !userData.id) {
-      toast.error('Please log in to purchase this bundle'); 
+      toast.error('Please log in to purchase this bundle');
       return;
     }
 
@@ -712,10 +781,9 @@ const TopicsList = () => {
 
       <div className="flex">
         {/* Sidebar - Categories with Plan Types */}
-        <div className={`${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-96 bg-white shadow-lg transition-transform duration-300 ease-in-out lg:shadow-none overflow-y-auto`}>
-          
+        <div className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          } lg:translate-x-0 fixed lg:static inset-y-0 left-0 z-50 w-96 bg-white shadow-lg transition-transform duration-300 ease-in-out lg:shadow-none overflow-y-auto`}>
+
           {/* Sidebar Header */}
           <div className="sticky top-0 p-6 border-b border-gray-200 bg-white">
             <div className="flex items-center justify-between">
@@ -752,11 +820,10 @@ const TopicsList = () => {
                     {/* Category Card */}
                     <div
                       onClick={() => handleCategoryClick(category.id)}
-                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        isSelected
-                          ? ` shadow-lg ring-2 ring-opacity-50`
-                          : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                      }`}
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${isSelected
+                        ? ` shadow-lg ring-2 ring-opacity-50`
+                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                        }`}
                     >
                       <div className="flex items-start gap-3">
                         {/* Icon */}
@@ -929,7 +996,7 @@ const TopicsList = () => {
                                     ✓ Enrolled
                                   </div>
                                 ) : (
-                                  <button 
+                                  <button
                                     onClick={() => handleBuyBundle(selectedCategoryObj)}
                                     disabled={checkingBundleEnrollment}
                                     className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -953,7 +1020,7 @@ const TopicsList = () => {
                                     ✓ Enrolled
                                   </div>
                                 ) : (
-                                  <button 
+                                  <button
                                     onClick={() => handleBuyBundle(selectedCategoryObj)}
                                     disabled={checkingBundleEnrollment}
                                     className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -973,7 +1040,7 @@ const TopicsList = () => {
                       {/* Topics List Below - Same for all plan types */}
                       <div className='p-4'>
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-6">
-                           {/* Results Info hidden for now. To be implemented with API later. */}
+                          {/* Results Info hidden for now. To be implemented with API later. */}
                         </div>
 
                         {/* Topics Grid */}
@@ -981,9 +1048,9 @@ const TopicsList = () => {
                           <>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                               {transformedTopics.map((topic) => (
-                                <TopicCard 
-                                  key={topic.id} 
-                                  topic={topic} 
+                                <TopicCard
+                                  key={topic.id}
+                                  topic={topic}
                                   isInWishlist={isInWishlist}
                                   onWishlistClick={handleWishlistClick}
                                   showPrice={selectedCategoryObj.plan_type === 'FLEXIBLE' || selectedCategoryObj.plan_type === 'INDIVIDUAL'}
@@ -998,7 +1065,7 @@ const TopicsList = () => {
                                 />
                               ))}
                             </div>
-                            
+
                             {/* Pagination */}
                             {totalPages > 1 && <Pagination />}
                           </>

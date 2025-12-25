@@ -3,7 +3,7 @@ import { assets } from '../../assets/assets';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Loading from '../../components/student/Loading';
-import { topicService } from '../../services/apiService';
+import { topicService, categoriesService } from '../../services/apiService';
 import { AppContext } from '../../context/AppContext';
 import MarkdownRenderer from '../../components/MarkdownRenderer';
 
@@ -14,8 +14,24 @@ const CourseDetails = () => {
   const { userData, currency } = useContext(AppContext);
   const [courseData, setCourseData] = useState(null);
   const [isAlreadyEnrolled, setIsAlreadyEnrolled] = useState(false);
+  const [categoryPlanType, setCategoryPlanType] = useState(null);
+  const [categoryDetails, setCategoryDetails] = useState(null);
+  const [isExpired, setIsExpired] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Helper to calculate days remaining (copied from MyEnrollments for consistency)
+  const getDaysRemaining = (enrolledAt) => {
+    if (!enrolledAt) return { days: 0, expiryDate: new Date() };
+    const enrolled = new Date(enrolledAt);
+    const expiry = new Date(enrolled);
+    expiry.setFullYear(expiry.getFullYear() + 1);
+
+    const today = new Date();
+    const diffTime = expiry - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return { days: diffDays, expiryDate: expiry };
+  };
 
   const fetchCourseData = async () => {
     try {
@@ -31,6 +47,36 @@ const CourseDetails = () => {
     }
   };
 
+  // Fetch category details to check plan type
+  useEffect(() => {
+    const fetchCategoryDetails = async () => {
+      // Get category ID from course data or location state
+      const categoryId = courseData?.categoryId || courseData?.category_id || location.state?.fromCategory;
+
+      if (categoryId) {
+        try {
+          // Since we don't have getCategoryById, we fetch all (cached usually) or filter
+          // Ideally backend should provide this, but we'll fetch all for now as fallback
+          const catRes = await categoriesService.getAllCategories();
+          const categories = catRes.data || [];
+          const category = categories.find(c => c.id === Number(categoryId));
+
+          if (category) {
+            console.log('Found Category:', category);
+            setCategoryDetails(category);
+            setCategoryPlanType(category.plan_type);
+          }
+        } catch (err) {
+          console.error('Error fetching category details:', err);
+        }
+      }
+    };
+
+    if (courseData || location.state?.fromCategory) {
+      fetchCategoryDetails();
+    }
+  }, [courseData, location.state]);
+
   const goBack = () => {
     // Prefer location.state, fall back to sessionStorage if user refreshed the page
     let fromCategory;
@@ -39,11 +85,6 @@ const CourseDetails = () => {
 
     if (location.state) {
       ({ fromCategory, fromSubCategory, appliedFilters } = location.state);
-      console.log('goBack -> using location.state:', {
-        fromCategory,
-        fromSubCategory,
-        appliedFilters,
-      });
     } else {
       const savedCategory = sessionStorage.getItem('fromCategory') || '';
       const savedSubCategory = sessionStorage.getItem('fromSubCategory') || '';
@@ -55,15 +96,8 @@ const CourseDetails = () => {
       try {
         appliedFilters = savedFilters ? JSON.parse(savedFilters) : {};
       } catch (e) {
-        console.error('goBack -> failed to parse appliedFilters from sessionStorage:', savedFilters, e);
         appliedFilters = {};
       }
-
-      console.log('goBack -> using sessionStorage:', {
-        fromCategory,
-        fromSubCategory,
-        appliedFilters,
-      });
     }
 
     const hasState =
@@ -85,7 +119,6 @@ const CourseDetails = () => {
         },
       });
     } else {
-      console.log('goBack -> no state found, navigating to /topics without filters');
       navigate('/topics');
     }
   };
@@ -106,15 +139,9 @@ const CourseDetails = () => {
       return;
     }
 
-    console.log('Enrolling in course:', {
-      topicId: courseData.id,
-      price: courseData.price,
-      isFree: courseData.isFree
-    });
-
     // Check if course is free
     if (courseData.isFree || courseData.price === 0 || courseData.price === null) {
-      // Free course - enroll directly
+      // free enrollment ... (logic unchanged)
       try {
         const response = await topicService.enrollInTopic({
           userId: userData.id,
@@ -122,28 +149,23 @@ const CourseDetails = () => {
           email: userData.email,
           currency: currency === '₹' ? 'INR' : 'USD',
         });
-
-        console.log('Free enrollment response:', response);
-
         if (response && response.success) {
           toast.success('Successfully enrolled in the free course!');
-          setIsAlreadyEnrolled(true);
+          // Re-check enrollment to set dates and active status
+          checkEnrollment().then(result => {
+            setIsAlreadyEnrolled(result.enrolled);
+            setIsExpired(false);
+          });
         } else {
-          const errorMsg = response?.error || 'Failed to enroll in the course';
-          console.error('Free enrollment failed:', errorMsg);
-          toast.error(errorMsg);
+          toast.error(response?.error || 'Failed to enroll');
         }
       } catch (error) {
-        console.error('Free enrollment error:', error);
-        const errorMsg = error?.response?.data?.error || error?.message || 'Failed to enroll in the course';
-        toast.error(errorMsg);
+        toast.error(error?.response?.data?.error || 'Failed to enroll');
       }
     } else {
       // Paid course - use Razorpay
       try {
         const currencyCode = currency === '₹' ? 'INR' : 'USD';
-        console.log('Initiating paid enrollment with Razorpay');
-
         const response = await topicService.enrollInTopic({
           userId: userData.id,
           topicId: courseData.id,
@@ -151,10 +173,7 @@ const CourseDetails = () => {
           currency: currencyCode,
         });
 
-        console.log('Paid enrollment response:', response);
-
         if (response.success && response.requiresPayment) {
-          // Initialize Razorpay checkout
           const options = {
             key: response.keyId,
             amount: response.amount,
@@ -164,7 +183,6 @@ const CourseDetails = () => {
             order_id: response.orderId,
             handler: async function (razorpayResponse) {
               try {
-                // Verify payment on backend
                 const verifyData = await topicService.verifyPayment({
                   razorpay_order_id: razorpayResponse.razorpay_order_id,
                   razorpay_payment_id: razorpayResponse.razorpay_payment_id,
@@ -172,15 +190,16 @@ const CourseDetails = () => {
                   userId: userData.id,
                   topicId: courseData.id,
                 });
-
                 if (verifyData.success) {
                   toast.success('Payment successful! You are now enrolled.');
-                  setIsAlreadyEnrolled(true);
+                  checkEnrollment().then(result => {
+                    setIsAlreadyEnrolled(result.enrolled);
+                    setIsExpired(false);
+                  });
                 } else {
                   toast.error('Payment verification failed');
                 }
               } catch (error) {
-                console.error('Payment verification error:', error);
                 toast.error('Payment verification failed');
               }
             },
@@ -189,62 +208,51 @@ const CourseDetails = () => {
               email: userData.email || '',
               contact: userData.phone || '',
             },
-            theme: {
-              color: '#2563eb',
-            },
+            theme: { color: '#2563eb' },
           };
-
           const razorpay = new window.Razorpay(options);
           razorpay.open();
         } else if (response.success) {
-          // Fallback in case backend returns success without payment
-          toast.success('Successfully enrolled in the course!');
-          setIsAlreadyEnrolled(true);
+          toast.success('Successfully enrolled!');
+          checkEnrollment().then(result => {
+            setIsAlreadyEnrolled(result.enrolled);
+            setIsExpired(false);
+          });
         } else {
-          const errorMsg = response.error || 'Failed to enroll in the course';
-          console.error('Paid enrollment failed:', errorMsg);
-          toast.error(errorMsg);
+          toast.error(response.error || 'Enrollment failed');
         }
       } catch (err) {
-        console.error('Enrollment error:', err);
-        const errorMsg = err?.response?.data?.error || err?.message || 'Enrollment failed';
-        toast.error(errorMsg);
+        toast.error(err?.response?.data?.error || 'Enrollment failed');
       }
     }
   };
 
-  // Example usage, adjust as per your actual API
+  // Check enrollment and return status + date
   const checkEnrollment = async () => {
     if (!userData || !userData.id) {
-      console.log('checkEnrollment: No user data');
-      return false;
+      return { enrolled: false, enrolledAt: null };
     }
     try {
-      // First try the new endpoint that checks both direct enrollment and bundle future topics
+      // First try the new endpoint
       const res = await topicService.checkTopicAccess(userData.id, id);
-      console.log('checkTopicAccess response:', {
-        userId: userData.id,
-        topicId: id,
-        response: res,
-        hasAccess: res?.hasAccess
-      });
       if (res?.hasAccess !== undefined) {
-        return res.hasAccess;
+        // If the API returns the date, use it. Otherwise we might have boolean access but unknown date
+        // Assuming the API returns some date field like 'enrolled_at' or 'created_at' in the object
+        return {
+          enrolled: res.hasAccess,
+          enrolledAt: res.enrolled_at || res.created_at || res.createdAt
+        };
       }
 
-      // Fallback to old endpoint if new one fails
+      // Fallback
       const fallbackRes = await topicService.checkUserEnrollment(userData.id, id);
-      console.log('checkUserEnrollment fallback response:', {
-        userId: userData.id,
-        topicId: id,
-        response: fallbackRes,
-        enrolled: fallbackRes?.enrolled,
-        paymentStatus: fallbackRes?.payment_status
-      });
-      return fallbackRes?.enrolled || false;
+      return {
+        enrolled: fallbackRes?.enrolled || false,
+        enrolledAt: fallbackRes?.enrolled_at || fallbackRes?.created_at
+      };
     } catch (error) {
       console.error('checkEnrollment error:', error);
-      return false;
+      return { enrolled: false, enrolledAt: null };
     }
   };
 
@@ -252,10 +260,24 @@ const CourseDetails = () => {
     const fetchAll = async () => {
       await fetchCourseData();
       if (userData && id) {
-        console.log('Checking enrollment for:', { userId: userData.id, topicId: id });
-        const enrolled = await checkEnrollment();
-        console.log('Setting isAlreadyEnrolled to:', enrolled);
+        const { enrolled, enrolledAt } = await checkEnrollment();
+
+        let expired = false;
+        if (enrolled && enrolledAt) {
+          const { days } = getDaysRemaining(enrolledAt);
+          if (days < 0) {
+            expired = true;
+          }
+        }
+
         setIsAlreadyEnrolled(enrolled);
+        setIsExpired(expired);
+
+        // If expired, ensure we don't treat it as enrolled for UI unlocking purposes
+        // Actually, we use isAlreadyEnrolled to show "Enrolled" badge or "Lock".
+        // If expired, we should perhaps set isAlreadyEnrolled to false OR keep it true but use isExpired to block access?
+        // Let's decide: If expired, the user IS enrolled but validity is over. 
+        // We will keep isAlreadyEnrolled=true so we can show "Expired" status, but we must update the 'isLocked' logic in render.
       }
     };
     fetchAll();
@@ -265,8 +287,7 @@ const CourseDetails = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('enrolled') === '1') {
-      // Re-check enrollment after payment
-      checkEnrollment().then(setIsAlreadyEnrolled);
+      checkEnrollment().then(({ enrolled }) => setIsAlreadyEnrolled(enrolled));
     }
   }, [location.search]);
 
@@ -411,7 +432,12 @@ const CourseDetails = () => {
             <div className="pt-5 w-full">
               {courseData.modules && courseData.modules.length > 0 ? (
                 courseData.modules.map((module, moduleIdx) => {
-                  const isLocked = !isAlreadyEnrolled && moduleIdx > 0;
+                  // Lock content if not enrolled OR if subscription is expired
+                  // Typically free preview (module 0) might remain open, or everything locks.
+                  // Existing logic locked moduleIdx > 0. We keep that for non-enrolled.
+                  // For expired, we likely want to lock strictly as well.
+                  const isLocked = (!isAlreadyEnrolled || isExpired) && moduleIdx > 0;
+
                   return (
                     <div
                       key={moduleIdx}
@@ -436,13 +462,13 @@ const CourseDetails = () => {
                               `Module ${moduleIdx + 1}`}
                           </p>
                           {isLocked && (
-                            <span className="ml-2 text-red-500 text-xs flex items-center gap-1">
+                            <span className="ml-2 text-xs flex items-center gap-1 font-semibold text-red-500">
                               <img
-                                src={assets.lockIcon}
+                                src={assets.lockIcon || assets.lock_icon}
                                 alt="Locked"
                                 className="w-4 h-4 inline"
                               />{' '}
-                              Locked
+                              {isExpired ? 'Expired' : 'Locked'}
                             </span>
                           )}
                         </div>
@@ -553,17 +579,45 @@ const CourseDetails = () => {
         <div className="w-full md:max-w-course-card z-10 shadow-custom-card overflow-hidden bg-white min-w-0">
           <div className="p-5 w-full">
             {isAlreadyEnrolled && (
-              <div className="md:mt-6 mt-4 w-full py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium text-center mb-6">
-                Enrolled
-              </div>
+              isExpired ? (
+                <div className="md:mt-6 mt-4 w-full py-2 rounded-lg bg-red-100 text-red-700 text-sm font-medium text-center mb-6 border border-red-200">
+                  Subscription Expired
+                </div>
+              ) : (
+                <div className="md:mt-6 mt-4 w-full py-2 rounded-lg bg-green-100 text-green-700 text-sm font-medium text-center mb-6">
+                  Enrolled
+                </div>
+              )
             )}
             {!isAlreadyEnrolled && (
-              <button
-                onClick={enrollCourse}
-                className="md:mt-6 mt-4 w-full py-4 rounded-lg bg-blue-600 text-white font-bold text-lg shadow-lg transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 mb-6"
-              >
-                Enroll Now
-              </button>
+              categoryPlanType === 'BUNDLE' ? (
+                <div className="md:mt-6 mt-4 mb-6">
+                  <div className="w-full py-4 rounded-lg bg-orange-100 text-orange-800 text-center font-medium border border-orange-200 mb-4 px-4">
+                    This topic is part of a bundle. <br />
+                    <span className="text-sm">Individual purchase not available.</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigate('/topics', {
+                        state: {
+                          fromCategory: categoryDetails?.id || courseData?.categoryId,
+                          // Pass fromCategory to ensure TopicsList selects it
+                        }
+                      });
+                    }}
+                    className="w-full py-3 rounded-lg bg-blue-600 text-white font-bold text-lg shadow-lg hover:bg-blue-700 transition-all"
+                  >
+                    View Bundle
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={enrollCourse}
+                  className="md:mt-6 mt-4 w-full py-4 rounded-lg bg-blue-600 text-white font-bold text-lg shadow-lg transition-all duration-200 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 mb-6"
+                >
+                  Enroll Now
+                </button>
+              )
             )}
 
             <button
