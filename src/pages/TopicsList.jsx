@@ -34,6 +34,7 @@ const TopicsList = () => {
   const [isBundleEnrolled, setIsBundleEnrolled] = useState(false);
   const [checkingBundleEnrollment, setCheckingBundleEnrollment] = useState(false);
   const [enrolledTopics, setEnrolledTopics] = useState(new Set()); // Track enrolled topic IDs
+  const [hasCategoryEnrollments, setHasCategoryEnrollments] = useState(false); // Track if user has any enrollment in this category
   const [wishlist, setWishlist] = useState(() => {
     const stored = localStorage.getItem('wishlist');
     return stored ? JSON.parse(stored) : [];
@@ -219,6 +220,7 @@ const TopicsList = () => {
       checkBundleEnrollment(selectedCategory);
     } else {
       setIsBundleEnrolled(false);
+      setHasCategoryEnrollments(false);
     }
   }, [selectedCategory, userData]);
 
@@ -441,6 +443,10 @@ const TopicsList = () => {
 
           if (Array.isArray(accessibleTopics) && accessibleTopics.length > 0) {
             console.log('Found', accessibleTopics.length, 'accessible topics');
+
+            // If we have accessible topics, set flag for category enrollment
+            setHasCategoryEnrollments(true);
+
             accessibleTopics.forEach(topicId => {
               newEnrollments.add(topicId);
             });
@@ -520,11 +526,32 @@ const TopicsList = () => {
     try {
       setCheckingBundleEnrollment(true);
 
-      // Check specific bundle enrollment status
-      const res = await topicService.checkBundleEnrollment(userData.id, categoryId);
-      console.log('Bundle enrollment check:', res);
-      // Ensure we treat the response correctly based on backend structure
-      setIsBundleEnrolled(res?.enrolled === true || res?.status === 'active');
+      const categoryIdInt = Number(categoryId);
+      const category = categories.find(c => c.id === categoryIdInt);
+
+      // FIX: For FLEXIBLE plan, we must check strict bundle ownership
+      // because checkBundleEnrollment might return true if user owns ANY topic
+      if (category && category.plan_type === 'FLEXIBLE') {
+        console.log('Checking strict bundle ownership for FLEXIBLE category');
+        const bundlesRes = await topicService.getUserBundles(userData.id);
+        console.log('User bundles response:', bundlesRes);
+
+        // Handle various potential response structures
+        const bundlesList = Array.isArray(bundlesRes) ? bundlesRes : (bundlesRes?.data || bundlesRes?.bundles || []);
+
+        const hasBundle = bundlesList.some(b =>
+          Number(b.category_id) === categoryIdInt ||
+          Number(b.categoryId) === categoryIdInt
+        );
+
+        setIsBundleEnrolled(hasBundle);
+      } else {
+        // Standard check for BUNDLE or other types
+        const res = await topicService.checkBundleEnrollment(userData.id, categoryId);
+        console.log('Bundle enrollment check:', res);
+        // Ensure we treat the response correctly based on backend structure
+        setIsBundleEnrolled(res?.enrolled === true || res?.status === 'active');
+      }
 
     } catch (error) {
       console.error('Error checking bundle enrollment:', error);
@@ -1018,6 +1045,10 @@ const TopicsList = () => {
                                 {isBundleEnrolled ? (
                                   <div className="bg-green-100 text-green-700 px-6 py-3 rounded-lg font-semibold">
                                     ✓ Enrolled
+                                  </div>
+                                ) : hasCategoryEnrollments ? (
+                                  <div className="text-gray-500 font-semibold px-4">
+                                    {/* Empty or message: Plan Active */}
                                   </div>
                                 ) : (
                                   <button
