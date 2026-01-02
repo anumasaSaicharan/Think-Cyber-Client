@@ -53,6 +53,10 @@ export const API_ENDPOINTS = {
   USER_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
   UPDATE_PROFILE: (userId) => `${BASE_URL}${API_VERSION}/users/${userId}`,
 
+  // Public User Endpoints (No Auth)
+  PUBLIC_USER_INFO: (id) => `${BASE_URL}${API_VERSION}/users/public/${id}`,
+  PUBLIC_DELETE_ACCOUNT: (id) => `${BASE_URL}${API_VERSION}/users/public/${id}`,
+
   // Contact Us
   CONTACT_US: `${BASE_URL}${API_VERSION}/contact`,
 

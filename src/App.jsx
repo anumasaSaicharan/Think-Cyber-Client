@@ -23,6 +23,7 @@ import PaymentCancel from './pages/student/PaymentCancel';
 import MobilePrivacyPolicy from './pages/student/MobilePrivacyPolicy';
 import MobileTermsAndConditions from './pages/student/MobileTermsAndConditions';
 import Profile from './pages/student/Profile';
+import MobileAccountDeletion from './pages/student/MobileAccountDeletion';
 const App = () => {
 
   const isEducatorRoute = useMatch('/educator/*');
@@ -58,6 +59,7 @@ const App = () => {
             {/* Mobile App specific routes (no navbar/footer) */}
             <Route path="/mobile/privacy" element={<MobilePrivacyPolicy />} />
             <Route path="/mobile/terms" element={<MobileTermsAndConditions />} />
+            <Route path="/mobile/delete-account/:userId" element={<MobileAccountDeletion />} />
           </Routes>
         </main>
 

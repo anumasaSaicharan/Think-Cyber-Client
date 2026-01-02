@@ -606,6 +606,31 @@ export const authService = {
 
 };
 
+// Public User Service (No Token Required)
+export const publicUserService = {
+  // Get user by ID (public)
+  getUserById: async (id) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PUBLIC_USER_INFO(id));
+      return response;
+    } catch (error) {
+      console.error('Error fetching public user info:', error);
+      throw error;
+    }
+  },
+
+  // Delete user by ID (public)
+  deleteUserById: async (id) => {
+    try {
+      const response = await apiClient.delete(API_ENDPOINTS.PUBLIC_DELETE_ACCOUNT(id));
+      return response;
+    } catch (error) {
+      console.error('Error deleting user account:', error);
+      throw error;
+    }
+  }
+};
+
 // Features Plans (Subscription Plans) API Services
 export const featuresPlansService = {
   // Get all active plans
