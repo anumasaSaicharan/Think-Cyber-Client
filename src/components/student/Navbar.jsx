@@ -143,7 +143,7 @@ const Navbar = () => {
             <a href="/about" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>About Us</a>
             <a href="/topics" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Topics</a>
             <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a>
-            <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a>
+            {/* <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a> */}
             <a href="/contact" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact Us</a>
             {userData && (
               <a href="/profile" className="text-lg text-red-500 font-semibold hover:text-red-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>My Profile (Account Settings)</a>
