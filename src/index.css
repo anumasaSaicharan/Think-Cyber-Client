@@ -100,6 +100,166 @@ body {
   top: -9999px !important;
 }
 
+/* ============================================
+   RESPONSIVE FONT FIXES FOR REGIONAL LANGUAGES
+   ============================================ */
+
+/* Force consistent font sizing across all languages */
+html[lang], body[lang], 
+html:lang(hi), html:lang(te), html:lang(ta), html:lang(kn), 
+html:lang(ml), html:lang(bn), html:lang(gu), html:lang(mr), html:lang(pa) {
+  font-size: 16px !important;
+}
+
+/* Fix Google Translate font size changes */
+.translated-ltr, .translated-rtl {
+  font-size: inherit !important;
+}
+
+/* Regional language font families with proper fallbacks */
+html:lang(hi), html:lang(hi) *,
+html:lang(mr), html:lang(mr) *,
+html:lang(pa), html:lang(pa) * {
+  font-family: "Noto Sans Devanagari", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(te), html:lang(te) * {
+  font-family: "Noto Sans Telugu", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(ta), html:lang(ta) * {
+  font-family: "Noto Sans Tamil", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(kn), html:lang(kn) * {
+  font-family: "Noto Sans Kannada", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(ml), html:lang(ml) * {
+  font-family: "Noto Sans Malayalam", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(bn), html:lang(bn) * {
+  font-family: "Noto Sans Bengali", "Roboto", "Arial", sans-serif !important;
+}
+
+html:lang(gu), html:lang(gu) * {
+  font-family: "Noto Sans Gujarati", "Roboto", "Arial", sans-serif !important;
+}
+
+/* Normalize font rendering across languages */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fix font size for translated elements */
+font[style*="vertical-align"],
+span.notranslate,
+span[lang] {
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+/* Preserve layout spacing in regional languages */
+html:lang(hi) h1, html:lang(te) h1, html:lang(ta) h1,
+html:lang(kn) h1, html:lang(ml) h1, html:lang(bn) h1,
+html:lang(gu) h1, html:lang(mr) h1, html:lang(pa) h1 {
+  line-height: 1.3 !important;
+  letter-spacing: 0.01em !important;
+}
+
+html:lang(hi) h2, html:lang(te) h2, html:lang(ta) h2,
+html:lang(kn) h2, html:lang(ml) h2, html:lang(bn) h2,
+html:lang(gu) h2, html:lang(mr) h2, html:lang(pa) h2 {
+  line-height: 1.35 !important;
+}
+
+html:lang(hi) p, html:lang(te) p, html:lang(ta) p,
+html:lang(kn) p, html:lang(ml) p, html:lang(bn) p,
+html:lang(gu) p, html:lang(mr) p, html:lang(pa) p {
+  line-height: 1.6 !important;
+}
+
+/* Button and interactive element fixes */
+html:lang(hi) button, html:lang(te) button, html:lang(ta) button,
+html:lang(kn) button, html:lang(ml) button, html:lang(bn) button,
+html:lang(gu) button, html:lang(mr) button, html:lang(pa) button {
+  font-size: 0.95em !important;
+  padding: 0.6em 1.2em !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+}
+
+/* Fix input and form field sizing */
+html:lang(hi) input, html:lang(te) input, html:lang(ta) input,
+html:lang(kn) input, html:lang(ml) input, html:lang(bn) input,
+html:lang(gu) input, html:lang(mr) input, html:lang(pa) input,
+html:lang(hi) textarea, html:lang(te) textarea, html:lang(ta) textarea,
+html:lang(kn) textarea, html:lang(ml) textarea, html:lang(bn) textarea,
+html:lang(gu) textarea, html:lang(mr) textarea, html:lang(pa) textarea {
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+}
+
+/* Responsive text scaling for mobile devices */
+@media (max-width: 768px) {
+  html[lang] {
+    font-size: 14px !important;
+  }
+  
+  html:lang(hi) h1, html:lang(te) h1, html:lang(ta) h1,
+  html:lang(kn) h1, html:lang(ml) h1, html:lang(bn) h1,
+  html:lang(gu) h1, html:lang(mr) h1, html:lang(pa) h1 {
+    font-size: 1.8em !important;
+  }
+  
+  html:lang(hi) h2, html:lang(te) h2, html:lang(ta) h2,
+  html:lang(kn) h2, html:lang(ml) h2, html:lang(bn) h2,
+  html:lang(gu) h2, html:lang(mr) h2, html:lang(pa) h2 {
+    font-size: 1.5em !important;
+  }
+}
+
+/* Prevent layout shift when language changes */
+.notranslate {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Fix Google Translate's font inheritance issues */
+body.translated-ltr,
+body.translated-rtl {
+  font-family: "Roboto", sans-serif !important;
+}
+
+/* Ensure consistent sizing for navigation and headers */
+nav, header, footer {
+  font-size: 1rem !important;
+}
+
+/* Fix card and container text */
+.card, .container, .wrapper {
+  font-size: inherit !important;
+}
+
+/* Animation for location prompt */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
 /* Additional Google Translate cleanup */
 body {
   top: 0px !important;

@@ -23,7 +23,7 @@ const StudentHome = () => {
   const [loading, setLoading] = useState(true);
   // Fetch homepage data and categories on component mount
     useEffect(() => {
-    console.log('Hero useEffect running: fetching homepage and topics');
+    // console.log('Hero useEffect running: fetching homepage and topics');
       const fetchData = async () => {
         try {
           setLoading(true);
@@ -35,8 +35,8 @@ const StudentHome = () => {
   
           setHomepageData(homepageResponse);
           setTopicsData(topicsResponse?.data || []);
-    console.log('Homepage response:', homepageResponse);
-    console.log('Topics response:', topicsResponse);
+    // console.log('Homepage response:', homepageResponse);
+    // console.log('Topics response:', topicsResponse);
         } catch (err) {
           console.error('Error fetching data:', err);
           setError('Failed to load content');

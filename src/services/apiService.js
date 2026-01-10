@@ -31,8 +31,34 @@ apiClient.interceptors.response.use(
     return response.data;
   },
   (error) => {
-    console.error('API Error:', error);
-    return Promise.reject(error);
+    // Wrap EVERYTHING in try-catch to prevent cross-origin errors from Razorpay iframes
+    let errorMessage = 'Request failed';
+    let statusCode = null;
+    
+    try {
+      // Try to get error message - each access wrapped separately
+      try { if (error?.response?.data?.error) errorMessage = String(error.response.data.error); }
+      catch (e) { /* ignore */ }
+      
+      try { if (errorMessage === 'Request failed' && error?.response?.data?.message) errorMessage = String(error.response.data.message); }
+      catch (e) { /* ignore */ }
+      
+      try { if (errorMessage === 'Request failed' && error?.message) errorMessage = String(error.message); }
+      catch (e) { /* ignore */ }
+      
+      try { if (error?.response?.status) statusCode = error.response.status; }
+      catch (e) { /* ignore */ }
+    } catch (e) {
+      // If anything fails, use defaults
+    }
+    
+    console.error('API Error:', errorMessage);
+    
+    return Promise.reject({
+      message: errorMessage,
+      status: statusCode,
+      error: errorMessage
+    });
   }
 );
 
@@ -663,6 +689,132 @@ export const featuresPlansService = {
     } catch (error) {
       console.error('Error fetching plan by ID:', error);
       throw error;
+    }
+  }
+};
+
+// Assessment API Services - Using fetch to avoid Razorpay iframe interference with axios
+export const assessmentService = {
+  // Get assessment details for a category
+  getAssessmentByCategory: async (categoryId, userId = null) => {
+    try {
+      let url = API_ENDPOINTS.ASSESSMENT_BY_CATEGORY(categoryId);
+      if (userId) {
+        url += `?userId=${userId}`;
+      }
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching assessment:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to fetch assessment', error: 'Request failed' };
+    }
+  },
+
+  // Start a new assessment
+  startAssessment: async (userId, categoryId, bypassCooldown = false) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(API_ENDPOINTS.ASSESSMENT_START, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ userId, categoryId, bypassCooldown })
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error starting assessment:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to start assessment', error: 'Request failed' };
+    }
+  },
+
+  // Submit assessment answers
+  submitAssessment: async (attemptId, answers) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(API_ENDPOINTS.ASSESSMENT_SUBMIT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        },
+        body: JSON.stringify({ attemptId, answers })
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error submitting assessment:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to submit assessment', error: 'Request failed' };
+    }
+  },
+
+  // Get attempt details
+  getAttemptDetails: async (attemptId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(API_ENDPOINTS.ASSESSMENT_ATTEMPT(attemptId), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching attempt details:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to fetch attempt details', error: 'Request failed' };
+    }
+  }
+};
+
+// Certificate API Services - Using fetch to avoid Razorpay iframe interference
+export const certificateService = {
+  // Get all certificates for a user
+  getUserCertificates: async (userId) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(API_ENDPOINTS.USER_CERTIFICATES(userId), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error fetching certificates:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to fetch certificates', error: 'Request failed' };
+    }
+  },
+
+  // Verify certificate by number
+  verifyCertificate: async (certificateNumber) => {
+    try {
+      const token = localStorage.getItem('authToken');
+      const response = await fetch(API_ENDPOINTS.CERTIFICATE_BY_NUMBER(certificateNumber), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        }
+      });
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error verifying certificate:', String(error?.message || 'Request failed'));
+      throw { message: 'Failed to verify certificate', error: 'Request failed' };
     }
   }
 };

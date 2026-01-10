@@ -10,8 +10,8 @@ export const AppContextProvider = (props) => {
     const currency = import.meta.env.VITE_CURRENCY || '₹';
     
     // Debug currency value
-    console.log('AppContext - Environment currency:', import.meta.env.VITE_CURRENCY);
-    console.log('AppContext - Final currency:', currency);
+    // console.log('AppContext - Environment currency:', import.meta.env.VITE_CURRENCY);
+    // console.log('AppContext - Final currency:', currency);
 
     const navigate = useNavigate()
     const [showLogin, setShowLogin] = useState(false)

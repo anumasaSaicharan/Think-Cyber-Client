@@ -6,6 +6,12 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ThinkCyber</title>
+  
+  <!-- Google Fonts for Regional Languages -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@300;400;500;600;700&family=Noto+Sans+Telugu:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@300;400;500;600;700&family=Noto+Sans+Kannada:wght@300;400;500;600;700&family=Noto+Sans+Malayalam:wght@300;400;500;600;700&family=Noto+Sans+Bengali:wght@300;400;500;600;700&family=Noto+Sans+Gujarati:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-2NFTJQR8ZB"></script>
   <script>
@@ -32,11 +38,46 @@
     /* Reset body top padding/margin that Google adds */
     body {
       top: 0px !important;
+      position: static !important;
+      margin: 0 !important;
     }
 
     /* Hide Google Translate gadget */
     .goog-te-gadget {
       display: none !important;
+    }
+    
+    /* Additional fixes for translation consistency */
+    body.translated-ltr,
+    body.translated-rtl,
+    .translated-ltr *,
+    .translated-rtl * {
+      font-size: inherit !important;
+      line-height: inherit !important;
+    }
+    
+    /* Prevent Google Translate from changing font sizes */
+    font[style] {
+      font-size: inherit !important;
+    }
+    
+    /* Maintain responsive design during translation */
+    @media (max-width: 768px) {
+      body {
+        font-size: 14px !important;
+      }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+      body {
+        font-size: 15px !important;
+      }
+    }
+    
+    @media (min-width: 1025px) {
+      body {
+        font-size: 16px !important;
+      }
     }
   </style>
 

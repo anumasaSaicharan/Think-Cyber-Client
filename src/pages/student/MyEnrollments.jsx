@@ -1,14 +1,19 @@
 import { useContext, useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AppContext } from '../../context/AppContext'
-import { categoriesService, topicService } from '../../services/apiService'
+import { categoriesService, topicService, certificateService } from '../../services/apiService'
 import Loading from '../../components/student/Loading';
+import { FiAward, FiBookOpen, FiDownload, FiExternalLink } from 'react-icons/fi';
 
 const MyEnrollments = () => {
     const { userData } = useContext(AppContext);
+    const navigate = useNavigate();
     const [enrolledBundles, setEnrolledBundles] = useState([]);
     const [enrolledTopics, setEnrolledTopics] = useState([]);
     const [loading, setLoading] = useState(true);
     const [categories, setCategories] = useState([]);
+    const [certificates, setCertificates] = useState([]);
+    const [activeTab, setActiveTab] = useState('enrollments');
 
     // Fetch enrolled bundles and individual topics
     useEffect(() => {
@@ -70,6 +75,16 @@ const MyEnrollments = () => {
                     setEnrolledTopics(mappedTopics);
                 } catch (topicsErr) {
                     console.error('Topics fetch error:', topicsErr);
+                }
+
+                // Fetch user certificates
+                try {
+                    const certsRes = await certificateService.getUserCertificates(userData.id);
+                    if (certsRes?.success && Array.isArray(certsRes.data)) {
+                        setCertificates(certsRes.data);
+                    }
+                } catch (certsErr) {
+                    console.error('Certificates fetch error:', certsErr);
                 }
 
             } catch (err) {
@@ -159,9 +174,37 @@ const MyEnrollments = () => {
                     </div>
                 </div>
 
+                {/* Tabs */}
+                <div className='mb-8 flex border-b border-gray-200'>
+                    <button
+                        onClick={() => setActiveTab('enrollments')}
+                        className={`flex items-center gap-2 px-6 py-3 font-semibold transition-colors ${
+                            activeTab === 'enrollments'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        <FiBookOpen className='w-5 h-5' />
+                        Enrollments ({totalEnrollments})
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('certificates')}
+                        className={`flex items-center gap-2 px-6 py-3 font-semibold transition-colors ${
+                            activeTab === 'certificates'
+                                ? 'text-blue-600 border-b-2 border-blue-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                    >
+                        <FiAward className='w-5 h-5' />
+                        Certificates ({certificates.length})
+                    </button>
+                </div>
+
                 {/* Main Content */}
-                {totalEnrollments > 0 ? (
-                    <div>
+                {activeTab === 'enrollments' && (
+                    <>
+                        {totalEnrollments > 0 ? (
+                            <div>
                         {/* Bundle Enrollments Section */}
                         {enrolledBundles.length > 0 && (
                             <div className='mb-12'>
@@ -399,6 +442,94 @@ const MyEnrollments = () => {
                         >
                             Browse Categories
                         </button>
+                    </div>
+                )}
+                    </>
+                )}
+
+                {/* Certificates Tab Content */}
+                {activeTab === 'certificates' && (
+                    <div>
+                        {certificates.length > 0 ? (
+                            <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
+                                {certificates.map((cert) => (
+                                    <div
+                                        key={cert.id}
+                                        className='bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow'
+                                    >
+                                        {/* Certificate Header */}
+                                        <div className='bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white'>
+                                            <div className='flex items-center gap-3'>
+                                                <FiAward className='w-10 h-10' />
+                                                <div>
+                                                    <h3 className='font-bold text-lg'>Certificate of Completion</h3>
+                                                    <p className='text-sm opacity-90'>{cert.category_name}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Certificate Body */}
+                                        <div className='p-6'>
+                                            {/* Score */}
+                                            <div className='flex justify-center mb-4'>
+                                                <div className='text-center'>
+                                                    <p className='text-4xl font-bold text-green-600'>{cert.score_percentage}%</p>
+                                                    <p className='text-sm text-gray-500'>Score Achieved</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Details */}
+                                            <div className='space-y-2 text-sm mb-6'>
+                                                <div className='flex justify-between'>
+                                                    <span className='text-gray-500'>Certificate ID</span>
+                                                    <span className='font-mono text-gray-700 text-xs'>{cert.certificate_number}</span>
+                                                </div>
+                                                <div className='flex justify-between'>
+                                                    <span className='text-gray-500'>Issued On</span>
+                                                    <span className='text-gray-700'>{formatDate(cert.issued_at)}</span>
+                                                </div>
+                                                <div className='flex justify-between'>
+                                                    <span className='text-gray-500'>Questions</span>
+                                                    <span className='text-gray-700'>{cert.correct_answers}/{cert.total_questions}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Actions */}
+                                            <div className='flex gap-3'>
+                                                <button
+                                                    onClick={() => navigate(`/certificate/${cert.certificate_number}`)}
+                                                    className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-semibold text-sm'
+                                                >
+                                                    <FiExternalLink className='w-4 h-4' />
+                                                    View
+                                                </button>
+                                                <button
+                                                    onClick={() => navigate(`/certificate/${cert.certificate_number}`)}
+                                                    className='flex-1 flex items-center justify-center gap-2 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 font-semibold text-sm'
+                                                >
+                                                    <FiDownload className='w-4 h-4' />
+                                                    Download
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className='text-center py-16'>
+                                <FiAward className='w-16 h-16 text-gray-300 mx-auto mb-4' />
+                                <h3 className='text-2xl font-bold text-gray-900 mb-2'>No Certificates Yet</h3>
+                                <p className='text-gray-600 mb-8'>
+                                    Complete assessments to earn certificates. Browse your enrolled courses and take assessments!
+                                </p>
+                                <button
+                                    className='bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors'
+                                    onClick={() => setActiveTab('enrollments')}
+                                >
+                                    View Enrollments
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

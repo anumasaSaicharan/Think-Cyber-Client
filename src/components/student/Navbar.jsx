@@ -60,8 +60,8 @@ const Navbar = () => {
     };
   }, [wishlist]);
 
-  console.log('Navbar - Wishlist:', wishlist);
-  console.log('Navbar - Wishlist length:', wishlist.length);
+  // console.log('Navbar - Wishlist:', wishlist);
+  // console.log('Navbar - Wishlist length:', wishlist.length);
   if (userData && userData.isVerified) {
     setShowLogin(true);
   }
@@ -98,6 +98,29 @@ const Navbar = () => {
 
         {/* Action Icons */}
         <div className="flex items-center gap-4">
+          {/* TEST: Reset Language Button */}
+          <button
+            onClick={() => {
+              // Clear all language-related storage
+              localStorage.removeItem('preferredLanguage');
+              localStorage.removeItem('locationPermissionStatus');
+              sessionStorage.clear();
+              document.cookie.split(";").forEach(c => {
+                document.cookie = c.replace(/^ +/, "")
+                  .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+              });
+              console.log('✅ All language data cleared! Reloading to test auto-detection...');
+              setTimeout(() => window.location.reload(), 500);
+            }}
+            className=""
+            title="Clear language preferences and test auto-detection"
+          >
+            {/* <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Reset Lang</span> */}
+          </button>
+
           <Link to="/wishlist">
             <img src={assets.favorite_icon} alt="Favorites" className="w-12 h-12" />
           </Link>
@@ -154,6 +177,27 @@ const Navbar = () => {
               <h3 className="text-sm font-medium text-gray-500 mb-2">Language</h3>
               <LanguageDropdown assets={assets} />
             </div>
+
+            {/* Mobile Reset Language Button */}
+            <button
+              onClick={() => {
+                localStorage.removeItem('preferredLanguage');
+                localStorage.removeItem('locationPermissionStatus');
+                sessionStorage.clear();
+                document.cookie.split(";").forEach(c => {
+                  document.cookie = c.replace(/^ +/, "")
+                    .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                console.log('✅ All language data cleared! Reloading...');
+                setTimeout(() => window.location.reload(), 500);
+              }}
+             // className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+            >
+              {/* <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              <span>Reset Language (Test)</span> */}
+            </button>
           </div>
         </div>
       </div>

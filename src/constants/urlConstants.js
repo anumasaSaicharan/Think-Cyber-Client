@@ -68,6 +68,16 @@ export const API_ENDPOINTS = {
   FEATURES_PLANS_ACTIVE: `${BASE_URL}${API_VERSION}/features-plans/active`,
   FEATURES_PLANS_BY_ID: (id) => `${BASE_URL}${API_VERSION}/features-plans/${id}`,
 
+  // Assessments
+  ASSESSMENT_BY_CATEGORY: (categoryId) => `${BASE_URL}${API_VERSION}/assessments/category/${categoryId}`,
+  ASSESSMENT_START: `${BASE_URL}${API_VERSION}/assessments/start`,
+  ASSESSMENT_SUBMIT: `${BASE_URL}${API_VERSION}/assessments/submit`,
+  ASSESSMENT_ATTEMPT: (attemptId) => `${BASE_URL}${API_VERSION}/assessments/attempt/${attemptId}`,
+
+  // Certificates
+  USER_CERTIFICATES: (userId) => `${BASE_URL}${API_VERSION}/certificates/user/${userId}`,
+  CERTIFICATE_BY_NUMBER: (certNumber) => `${BASE_URL}${API_VERSION}/certificates/${certNumber}`,
+
 };
 
 export default API_ENDPOINTS;

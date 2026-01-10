@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { topicService, categoriesService, subcategoriesService } from '../services/apiService';
+import { topicService, categoriesService, subcategoriesService, assessmentService } from '../services/apiService';
 import Loading from '../components/student/Loading';
 import TopicCard from '../components/student/TopicCard';
 import { toast } from 'react-toastify';
@@ -40,6 +40,7 @@ const TopicsList = () => {
     return stored ? JSON.parse(stored) : [];
   });
   const [sortOrder, setSortOrder] = useState('default'); // 'default', 'desc', or 'asc'
+  const [assessmentConfig, setAssessmentConfig] = useState(null); // Track assessment config for selected category
 
   // Fetch data
   useEffect(() => {
@@ -218,9 +219,12 @@ const TopicsList = () => {
   useEffect(() => {
     if (selectedCategory) {
       checkBundleEnrollment(selectedCategory);
+      // Fetch assessment config for the category
+      fetchAssessmentConfig(selectedCategory);
     } else {
       setIsBundleEnrolled(false);
       setHasCategoryEnrollments(false);
+      setAssessmentConfig(null);
     }
   }, [selectedCategory, userData]);
 
@@ -511,7 +515,7 @@ const TopicsList = () => {
         });
       }
     } catch (error) {
-      console.error('Error checking topic enrollments:', error);
+      console.error('Error checking topic enrollments:', error?.message || 'Request failed');
       // Don't clear on error, keep what we have
     }
   };
@@ -554,10 +558,29 @@ const TopicsList = () => {
       }
 
     } catch (error) {
-      console.error('Error checking bundle enrollment:', error);
+      console.error('Error checking bundle enrollment:', error?.message || 'Request failed');
       setIsBundleEnrolled(false);
     } finally {
       setCheckingBundleEnrollment(false);
+    }
+  };
+
+  // Fetch assessment config for a category
+  const fetchAssessmentConfig = async (categoryId) => {
+    try {
+      console.log('Fetching assessment config for category:', categoryId, 'userId:', userData?.id);
+      const response = await assessmentService.getAssessmentByCategory(categoryId, userData?.id || null);
+      console.log('Assessment config response:', response);
+      if (response?.success && response?.data?.is_enabled) {
+        setAssessmentConfig(response.data);
+        console.log('Assessment config set:', response.data);
+      } else {
+        setAssessmentConfig(null);
+        console.log('Assessment not enabled or no data');
+      }
+    } catch (error) {
+      console.error('Error fetching assessment config:', error?.message || 'Request failed');
+      setAssessmentConfig(null);
     }
   };
 
@@ -658,7 +681,7 @@ const TopicsList = () => {
                 toast.error('Payment verification failed');
               }
             } catch (error) {
-              console.error('Payment verification error:', error);
+              console.error('Payment verification error:', error?.message || 'Request failed');
               toast.error('Payment verification failed');
             }
           },
@@ -678,7 +701,7 @@ const TopicsList = () => {
         toast.error(orderData.error || 'Failed to create order');
       }
     } catch (error) {
-      console.error('Bundle purchase error:', error);
+      console.error('Bundle purchase error:', error?.message || 'Request failed');
       toast.error('Failed to initiate bundle purchase');
     }
   };
@@ -907,6 +930,33 @@ const TopicsList = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Assessment Link - Show when assessment is enabled for this category */}
+                      {isSelected && assessmentConfig && Number(assessmentConfig.category_id) === Number(category.id) && (
+                        <div className="mt-3 pt-3 border-t border-current border-opacity-20" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/assessment/${category.id}`);
+                            }}
+                            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all shadow-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl">🏆</span>
+                              <div className="text-left">
+                                <p className="font-semibold text-sm">Take Assessment</p>
+                                <p className="text-xs opacity-90">
+                                  {assessmentConfig.has_passed 
+                                    ? '✓ Certificate Earned' 
+                                    : `${assessmentConfig.total_questions} questions · ${assessmentConfig.passing_percentage}% to pass`
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-lg">→</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -1066,6 +1116,36 @@ const TopicsList = () => {
                           </div>
                           {/* Search bar removed as per request */}
                         </div>
+
+                        {/* Assessment Banner - Show when enabled */}
+                        {assessmentConfig && (isBundleEnrolled || hasCategoryEnrollments) && (
+                          <div className="mt-4 mx-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <span className="text-3xl">🏆</span>
+                                <div>
+                                  <h3 className="font-bold text-green-800">Assessment Available</h3>
+                                  <p className="text-sm text-green-700">
+                                    {assessmentConfig.has_passed 
+                                      ? 'You have passed this assessment and earned a certificate!' 
+                                      : `Test your knowledge with ${assessmentConfig.total_questions} questions. Score ${assessmentConfig.passing_percentage}% or more to earn a certificate.`
+                                    }
+                                  </p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => navigate(`/assessment/${selectedCategoryObj.id}`)}
+                                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
+                                  assessmentConfig.has_passed 
+                                    ? 'bg-green-600 text-white hover:bg-green-700' 
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                                }`}
+                              >
+                                {assessmentConfig.has_passed ? 'View Certificate' : 'Take Assessment'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Topics List Below - Same for all plan types */}

@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import SearchBar from './SearchBar';
 
 const Hero = () => {
-  console.log('Hero component mounted');
+  // console.log('Hero component mounted');
   const navigate = useNavigate();
   const [homepageData, setHomepageData] = useState(null);
   const [topicsData, setTopicsData] = useState([]);
@@ -20,17 +20,17 @@ const Hero = () => {
   const [wishlist, setWishlist] = useState(() => {
     // Load wishlist from localStorage on mount
     const stored = localStorage.getItem('wishlist');
-    console.log('Loaded wishlist from localStorage:', stored);
+    // console.log('Loaded wishlist from localStorage:', stored);
     return stored ? JSON.parse(stored) : [];
   });
   const [wishlistMsg, setWishlistMsg] = useState('');
 
-  console.log('Wishlist state:', wishlist);
-  console.log('Wishlist length:', wishlist.length === 0 ? 'Your wishlist is empty' : wishlistMsg);
-  console.log('Topics:', topicsData);
+  // console.log('Wishlist state:', wishlist);
+  // console.log('Wishlist length:', wishlist.length === 0 ? 'Your wishlist is empty' : wishlistMsg);
+  // console.log('Topics:', topicsData);
   // Fetch homepage data and categories on component mount
   useEffect(() => {
-  console.log('Hero useEffect running: fetching homepage and topics');
+  // console.log('Hero useEffect running: fetching homepage and topics');
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -42,8 +42,8 @@ const Hero = () => {
 
         setHomepageData(homepageResponse);
         setTopicsData(topicsResponse?.data || []);
-  console.log('Homepage response:', homepageResponse);
-  console.log('Topics response:', topicsResponse);
+  // console.log('Homepage response:', homepageResponse);
+  // console.log('Topics response:', topicsResponse);
       } catch (err) {
         console.error('Error fetching data:', err);
         setError('Failed to load content');

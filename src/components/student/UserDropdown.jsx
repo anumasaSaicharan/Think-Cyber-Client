@@ -64,7 +64,7 @@ export default function UserDropdown({ assets, userData }) {
             <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={() => navigate('/profile')}>
               My Profile
             </li>
-            <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={() => navigate('/enrollments')}>
+            <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer" onClick={() => navigate('/my-enrollments')}>
               My Enrollments
             </li>
             <li className="px-4 py-2 hover:bg-gray-100 cursor-pointer text-red-600 font-semibold"

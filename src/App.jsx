@@ -16,6 +16,8 @@ import PrivacyPolicy from './pages/student/PrivacyPolicy';
 import TermsAndConditions from './pages/student/TermsAndConditions';
 import OurPlans from './pages/student/OurPlans';
 import { AppContextProvider } from './context/AppContext';
+import { LanguageProvider, useLanguageContext } from './contexts/LanguageContext';
+import LanguageLoader from './components/student/LanguageLoader';
 import 'quill/dist/quill.snow.css'
 import 'react-toastify/dist/ReactToastify.css';
 import PaymentSuccess from './pages/student/PaymentSuccess';
@@ -24,48 +26,60 @@ import MobilePrivacyPolicy from './pages/student/MobilePrivacyPolicy';
 import MobileTermsAndConditions from './pages/student/MobileTermsAndConditions';
 import Profile from './pages/student/Profile';
 import MobileAccountDeletion from './pages/student/MobileAccountDeletion';
-const App = () => {
+import AssessmentPage from './pages/student/AssessmentPage';
+import CertificatePage from './pages/student/CertificatePage';
+import CertificateVerify from './pages/CertificateVerify';
 
+const AppContent = () => {
   const isEducatorRoute = useMatch('/educator/*');
   const isMobileRoute = useMatch('/mobile/*');
   const shouldHideNavbarFooter = isEducatorRoute || isMobileRoute;
 
   return (
+    <div className="text-default min-h-screen bg-white flex flex-col">
+      <ToastContainer />
+      {/* Render Student Navbar only if not on educator or mobile routes */}
+      {!shouldHideNavbarFooter && <Navbar />}
+
+      {/* Main content area that grows to fill available space */}
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/topics" element={<TopicsList />} />
+          <Route path="/course/:id" element={<CourseDetails />} />
+          <Route path="/loading/:path" element={<Loading />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+          <Route path="/our-plans" element={<OurPlans />} />
+          <Route path="/my-enrollments" element={<MyEnrollments />} />
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+          <Route path="/payment-cancel" element={<PaymentCancel />} />
+          <Route path="/mobile/privacy-policy" element={<MobilePrivacyPolicy />} />
+          <Route path="/mobile/terms-and-conditions" element={<MobileTermsAndConditions />} />
+          <Route path="/mobile/account-deletion" element={<MobileAccountDeletion />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/assessment/:categoryId" element={<AssessmentPage />} />
+          <Route path="/certificate/:assessmentId" element={<CertificatePage />} />
+          <Route path="/verify-certificate/:certificateId" element={<CertificateVerify />} />
+        </Routes>
+      </main>
+
+      {/* Render Student Footer only if not on educator or mobile routes */}
+      {!shouldHideNavbarFooter && <Footer />}
+    </div>
+  );
+};
+
+const App = () => {
+  return (
     <AppContextProvider>
-      <div className="text-default min-h-screen bg-white flex flex-col">
-        <ToastContainer />
-        {/* Render Student Navbar only if not on educator or mobile routes */}
-        {!shouldHideNavbarFooter && <Navbar />}
-
-        {/* Main content area that grows to fill available space */}
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/topics" element={<TopicsList />} />
-            <Route path="/course/:id" element={<CourseDetails />} />
-            <Route path="/loading/:path" element={<Loading />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/faq" element={<FAQ />} />
-            <Route path="/wishlist" element={<WishlistPage />} />
-            <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/payment-cancel" element={<PaymentCancel />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/enrollments" element={<MyEnrollments />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsAndConditions />} />
-            <Route path="/our-plans" element={<OurPlans />} />
-
-            {/* Mobile App specific routes (no navbar/footer) */}
-            <Route path="/mobile/privacy" element={<MobilePrivacyPolicy />} />
-            <Route path="/mobile/terms" element={<MobileTermsAndConditions />} />
-            <Route path="/mobile/delete-account/:userId" element={<MobileAccountDeletion />} />
-          </Routes>
-        </main>
-
-        {/* Footer stays at bottom */}
-        {!shouldHideNavbarFooter && <Footer />}
-      </div>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
     </AppContextProvider>
   )
 }
