@@ -14,6 +14,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [showLogin, setShowLogin] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [dynamicPages, setDynamicPages] = React.useState([]);
   const [wishlist, setWishlist] = React.useState(() => {
     const stored = localStorage.getItem('wishlist');
     return stored ? JSON.parse(stored) : [];
@@ -22,6 +23,25 @@ const Navbar = () => {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [searchResults, setSearchResults] = React.useState([]);
   const [showResults, setShowResults] = React.useState(false);
+
+  // Fetch dynamic pages for navbar
+  useEffect(() => {
+    const fetchDynamicPages = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/dynamic-pages/public`);
+        if (response.ok) {
+          const data = await response.json();
+          const navbarPages = data.pages
+            .filter(page => page.show_in_navbar)
+            .sort((a, b) => a.navbar_position - b.navbar_position);
+          setDynamicPages(navbarPages);
+        }
+      } catch (error) {
+        console.error('Error fetching dynamic pages:', error);
+      }
+    };
+    fetchDynamicPages();
+  }, []);
 
   // Sync wishlist from localStorage on storage change (for multi-tab) and custom events
   useEffect(() => {
@@ -93,6 +113,15 @@ const Navbar = () => {
           <a href="/about" className="hover:text-blue-600">About Us</a>
           <a href="/topics" className="hover:text-blue-600">Topics</a>
           <a href="/our-plans" className="hover:text-blue-600">Features</a>
+          {dynamicPages.map((page) => (
+            <a 
+              key={page.id} 
+              href={`/page/${page.slug}`} 
+              className="hover:text-blue-600"
+            >
+              {page.navbar_label}
+            </a>
+          ))}
           <a href="/contact" className="hover:text-blue-600">Contact Us</a>
         </div>
 
@@ -166,6 +195,16 @@ const Navbar = () => {
             <a href="/about" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>About Us</a>
             <a href="/topics" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Topics</a>
             <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a>
+            {dynamicPages.map((page) => (
+              <a 
+                key={page.id}
+                href={`/page/${page.slug}`} 
+                className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" 
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                {page.navbar_label}
+              </a>
+            ))}
             {/* <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a> */}
             <a href="/contact" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Contact Us</a>
             {userData && (

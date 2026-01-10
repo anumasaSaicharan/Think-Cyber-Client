@@ -29,6 +29,7 @@ import MobileAccountDeletion from './pages/student/MobileAccountDeletion';
 import AssessmentPage from './pages/student/AssessmentPage';
 import CertificatePage from './pages/student/CertificatePage';
 import CertificateVerify from './pages/CertificateVerify';
+import DynamicPage from './pages/DynamicPage';
 
 const AppContent = () => {
   const isEducatorRoute = useMatch('/educator/*');
@@ -65,6 +66,8 @@ const AppContent = () => {
           <Route path="/assessment/:categoryId" element={<AssessmentPage />} />
           <Route path="/certificate/:assessmentId" element={<CertificatePage />} />
           <Route path="/verify-certificate/:certificateId" element={<CertificateVerify />} />
+          {/* Dynamic pages route - must be last to not override other routes */}
+          <Route path="/page/:slug" element={<DynamicPage />} />
         </Routes>
       </main>
 
