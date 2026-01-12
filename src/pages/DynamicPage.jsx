@@ -70,7 +70,7 @@ const DynamicPage = () => {
           <meta name="keywords" content={page.meta_keywords} />
         )}
       </Helmet>
-      <DynamicPageRenderer content={page.content} />
+      <DynamicPageRenderer content={page.content} templateType={page.template_type} />
     </>
   );
 };

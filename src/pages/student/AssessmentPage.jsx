@@ -77,11 +77,40 @@ const AssessmentPage = () => {
       setLoading(true);
       const response = await assessmentService.startAssessment(userData.id, categoryId, bypassCooldown);
       if (response?.success) {
+        // Use time_remaining_seconds if resuming, otherwise calculate from time_limit_minutes
+        const timeInSeconds = response.data.time_remaining_seconds ?? (response.data.time_limit_minutes * 60);
+        
+        // If resuming and time has expired, auto-submit immediately
+        if (response.data.resumed && timeInSeconds <= 0) {
+          toast.warning('Assessment time has expired. Auto-submitting...');
+          try {
+            const submitResponse = await assessmentService.submitAssessment(response.data.attempt_id, {});
+            if (submitResponse?.success && submitResponse?.data) {
+              setResults(submitResponse.data);
+              setAttemptData(null);
+              setShowStartScreen(false);
+            } else {
+              toast.error('Failed to submit expired assessment');
+              setShowStartScreen(true);
+              setRefreshKey(prev => prev + 1);
+            }
+          } catch (submitError) {
+            toast.error('Failed to submit expired assessment');
+            setShowStartScreen(true);
+            setRefreshKey(prev => prev + 1);
+          }
+          return;
+        }
+        
         setAttemptData(response.data);
-        setTimeRemaining(response.data.time_limit_minutes * 60);
+        setTimeRemaining(timeInSeconds);
         setShowStartScreen(false);
         setAnswers({});
         setCurrentQuestionIndex(0);
+        
+        if (response.data.resumed) {
+          toast.info('Resuming your in-progress assessment');
+        }
       } else {
         toast.error(response?.error || 'Failed to start assessment');
       }
@@ -110,10 +139,12 @@ const AssessmentPage = () => {
   };
 
   const goToQuestion = (index) => setCurrentQuestionIndex(index);
-  const goToNext = () => currentQuestionIndex < attemptData.questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1);
+  const goToNext = () => attemptData?.questions && currentQuestionIndex < attemptData.questions.length - 1 && setCurrentQuestionIndex(prev => prev + 1);
   const goToPrev = () => currentQuestionIndex > 0 && setCurrentQuestionIndex(prev => prev - 1);
 
   const handleSubmit = async (autoSubmit = false) => {
+    if (!attemptData?.questions) return;
+    
     if (!autoSubmit) {
       const unanswered = attemptData.questions.filter(q => !answers[q.id]).length;
       if (unanswered > 0 && !window.confirm(`You have ${unanswered} unanswered question(s). Submit anyway?`)) return;
@@ -121,7 +152,7 @@ const AssessmentPage = () => {
     try {
       setIsSubmitting(true);
       const response = await assessmentService.submitAssessment(attemptData.attempt_id, answers);
-      if (response?.success) {
+      if (response?.success && response?.data) {
         setResults(response.data);
         setAttemptData(null);
       } else {
@@ -185,11 +216,12 @@ const AssessmentPage = () => {
 
   // Results Screen - Modern glassmorphism design
   if (results) {
-    const percentage = parseFloat(results.score_percentage);
+    const percentage = parseFloat(results.score_percentage) || 0;
+    const isPassed = results.passed === true || results.status === 'passed';
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 pb-24">
-        <div className="w-full max-w-2xl">
-          <div className={`relative overflow-hidden rounded-3xl p-8 ${results.passed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-[#1E90FF] to-[#00BFFF]'} shadow-2xl shadow-blue-500/30`}>
+      <div key="results-screen" className="min-h-screen bg-gray-50 p-4 pb-24 flex items-center justify-center notranslate" translate="no">
+        <div className="w-full max-w-2xl mx-auto">
+          <div className={`relative overflow-hidden rounded-3xl p-8 ${isPassed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-[#1E90FF] to-[#00BFFF]'} shadow-2xl shadow-blue-500/30`}>
             {/* Animated background circles */}
             <div className="absolute -top-20 -right-20 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
             <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
@@ -197,50 +229,50 @@ const AssessmentPage = () => {
             <div className="relative z-10">
               {/* Result Icon */}
               <div className="flex justify-center mb-6">
-                <div className={`w-24 h-24 rounded-full flex items-center justify-center ${results.passed ? 'bg-emerald-500/30' : 'bg-red-500/30'}`}>
-                  {results.passed ? <FiCheckCircle className="w-12 h-12 text-emerald-400" /> : <FiXCircle className="w-12 h-12 text-red-400" />}
+                <div className={`w-24 h-24 rounded-full flex items-center justify-center ${isPassed ? 'bg-emerald-500/30' : 'bg-red-500/30'}`}>
+                  {isPassed ? <FiCheckCircle className="w-12 h-12 text-emerald-400" /> : <FiXCircle className="w-12 h-12 text-red-400" />}
                 </div>
               </div>
 
               <h1 className="text-3xl font-bold text-center mb-2 text-white">
-                {results.passed ? '🎉 Congratulations!' : 'Keep Learning!'}
+                {isPassed ? '🎉 Congratulations!' : 'Keep Learning!'}
               </h1>
               <p className="text-center text-white/80 mb-8">
-                {results.passed ? 'You passed and earned a certificate!' : 'You can try again to improve your score.'}
+                {isPassed ? 'You passed and earned a certificate!' : 'You can try again to improve your score.'}
               </p>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-4 gap-3 mb-8 justify-items-center">
+                {[
+                  { label: 'Correct', value: results.correct_answers ?? 0 },
+                  { label: 'Wrong', value: results.wrong_answers ?? 0 },
+                  { label: 'Skipped', value: results.unanswered ?? 0 },
+                  { label: 'Passing', value: `${results.passing_percentage ?? 0}%` },
+                ].map((stat, i) => (
+                  <div key={i} className="bg-white/20 rounded-2xl p-4 text-center w-full">
+                    <p className="text-2xl font-bold text-white" translate="no">{stat.value}</p>
+                    <p className="text-xs text-white/70 mt-1">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
 
               {/* Score Circle */}
               <div className="flex justify-center mb-8">
                 <div className="relative w-32 h-32">
                   <svg className="w-full h-full transform -rotate-90">
                     <circle cx="64" cy="64" r="56" stroke="rgba(255,255,255,0.1)" strokeWidth="12" fill="none" />
-                    <circle cx="64" cy="64" r="56" stroke={results.passed ? '#10b981' : '#ef4444'} strokeWidth="12" fill="none" strokeLinecap="round"
+                    <circle cx="64" cy="64" r="56" stroke={isPassed ? '#10b981' : '#ef4444'} strokeWidth="12" fill="none" strokeLinecap="round"
                       strokeDasharray={`${(percentage / 100) * 352} 352`} className="transition-all duration-1000" />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-3xl font-bold text-white">{percentage}%</span>
+                    <span className="text-3xl font-bold text-white notranslate" translate="no">{percentage}%</span>
                   </div>
                 </div>
               </div>
 
-              {/* Stats Grid */}
-              <div className="grid grid-cols-4 gap-3 mb-8">
-                {[
-                  { label: 'Correct', value: results.correct_answers },
-                  { label: 'Wrong', value: results.wrong_answers },
-                  { label: 'Skipped', value: results.unanswered },
-                  { label: 'Passing', value: `${results.passing_percentage}%` },
-                ].map((stat, i) => (
-                  <div key={i} className="bg-white/20 rounded-2xl p-4 text-center">
-                    <p className="text-2xl font-bold text-white">{stat.value}</p>
-                    <p className="text-xs text-white/70 mt-1">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 justify-center">
-                {results.passed && results.certificate && (
+                {isPassed && results.certificate && (
                   <button onClick={() => navigate(`/certificate/${results.certificate.certificate_number}`)}
                     className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-xl font-semibold hover:bg-gray-100 transition-all">
                     <FiAward className="w-5 h-5" /> View Certificate
@@ -250,8 +282,8 @@ const AssessmentPage = () => {
                   className="px-6 py-3 bg-white/20 text-white rounded-xl font-semibold hover:bg-white/30 transition-all">
                   My Enrollments
                 </button>
-                {!results.passed && assessmentInfo.allow_retake && assessmentInfo.attempts_remaining > 0 && (
-                  <button onClick={() => { setResults(null); setShowStartScreen(true); setRefreshKey(prev => prev + 1); }}
+                {!isPassed && assessmentInfo.allow_retake && (assessmentInfo.attempts_remaining === null || assessmentInfo.attempts_remaining > 0) && (
+                  <button onClick={() => { setResults(null); setAttemptData(null); setAnswers({}); setCurrentQuestionIndex(0); setShowStartScreen(true); setRefreshKey(prev => prev + 1); }}
                     className="flex items-center gap-2 px-6 py-3 bg-white text-[#1E90FF] rounded-xl font-semibold hover:bg-gray-100 transition-all">
                     <FiRefreshCw className="w-5 h-5" /> Try Again
                   </button>
@@ -267,7 +299,7 @@ const AssessmentPage = () => {
   // Start Screen - Modern card design
   if (showStartScreen) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 pb-24">
+      <div key="start-screen" className="min-h-screen flex items-center justify-center bg-gray-50 p-4 pb-24">
         <div className="w-full max-w-xl">
           {/* Back Button */}
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6 transition-colors">
@@ -388,20 +420,25 @@ const AssessmentPage = () => {
   }
 
   // Question Screen - Modern full-height layout
-  const currentQuestion = attemptData?.questions[currentQuestionIndex];
+  const currentQuestion = attemptData?.questions?.[currentQuestionIndex];
   const answeredCount = Object.keys(answers).length;
-  const progress = ((currentQuestionIndex + 1) / attemptData.questions.length) * 100;
+  const progress = attemptData?.questions?.length ? ((currentQuestionIndex + 1) / attemptData.questions.length) * 100 : 0;
+
+  // Safety check - if no current question, show loading
+  if (!currentQuestion || !attemptData?.questions?.length) {
+    return <Loading />;
+  }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 pb-24">
+    <div key={`question-screen-${currentQuestionIndex}`} className="min-h-screen flex flex-col bg-gray-50 pb-24">
       {/* Top Bar */}
-      <div className="flex-shrink-0 px-4 py-3 bg-gradient-to-r from-[#1E90FF] to-[#00BFFF] shadow-lg">
+      <div className="flex-shrink-0 px-4 py-3 bg-gradient-to-r from-[#1E90FF] to-[#00BFFF] shadow-lg notranslate" translate="no">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="text-white font-semibold">{assessmentInfo.category_name}</span>
-            <span className="text-white/70 text-sm">Q {currentQuestionIndex + 1}/{attemptData.questions.length}</span>
+            <span className="text-white/70 text-sm notranslate" translate="no">Q {currentQuestionIndex + 1}/{attemptData.questions.length}</span>
           </div>
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold ${
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-xl font-mono font-bold notranslate ${
             timeRemaining < 60 ? 'bg-red-500 text-white animate-pulse' : 
             timeRemaining < 300 ? 'bg-yellow-400 text-gray-900' : 'bg-white/20 text-white'
           }`}>
@@ -424,7 +461,7 @@ const AssessmentPage = () => {
           <div className="flex-1 flex flex-col bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
             {/* Question Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-gray-50">
-              <span className="text-gray-500 font-medium">Question {currentQuestionIndex + 1}</span>
+              <span className="text-gray-500 font-medium notranslate" translate="no">Question {currentQuestionIndex + 1}</span>
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                 currentQuestion.difficulty === 'easy' ? 'bg-emerald-100 text-emerald-600' :
                 currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-600' : 'bg-red-100 text-red-600'
@@ -442,24 +479,26 @@ const AssessmentPage = () => {
 
             {/* Options */}
             <div className="flex-1 px-6 pb-6 overflow-y-auto">
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 {['A', 'B', 'C', 'D'].map((option) => {
                   const optionKey = `option_${option.toLowerCase()}`;
+                  const optionText = currentQuestion[optionKey] || '';
                   const isSelected = answers[currentQuestion.id] === option;
+                  
                   return (
                     <button key={option} onClick={() => handleAnswerSelect(currentQuestion.id, option)}
-                      className={`w-full text-left p-4 rounded-2xl border-2 transition-all ${
+                      className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 ${
                         isSelected 
-                          ? 'border-[#1E90FF] bg-blue-50' 
-                          : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100'
+                          ? 'border-[#1E90FF] bg-blue-50 shadow-md shadow-blue-200' 
+                          : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50/50'
                       }`}>
                       <div className="flex items-center gap-4">
-                        <span className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg ${
-                          isSelected ? 'bg-[#1E90FF] text-white' : 'bg-gray-200 text-gray-500'
-                        }`}>
+                        <span className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg flex-shrink-0 ${
+                          isSelected ? 'bg-[#1E90FF] text-white shadow-lg' : 'bg-gray-100 text-gray-600'
+                        }`} translate="no">
                           {option}
                         </span>
-                        <span className="text-gray-700 flex-1">{currentQuestion[optionKey]}</span>
+                        <span className={`flex-1 text-base leading-relaxed ${isSelected ? 'text-gray-800 font-medium' : 'text-gray-700'}`}>{optionText}</span>
                       </div>
                     </button>
                   );
@@ -477,7 +516,7 @@ const AssessmentPage = () => {
 
             {/* Question Dots */}
             <div className="hidden md:flex items-center gap-1 overflow-x-auto max-w-md px-2">
-              {attemptData.questions.map((q, index) => {
+              {attemptData?.questions?.map((q, index) => {
                 const isAnswered = answers[q.id];
                 const isCurrent = index === currentQuestionIndex;
                 return (
@@ -489,7 +528,7 @@ const AssessmentPage = () => {
               })}
             </div>
 
-            {currentQuestionIndex === attemptData.questions.length - 1 ? (
+            {currentQuestionIndex === (attemptData?.questions?.length || 1) - 1 ? (
               <button onClick={() => handleSubmit(false)} disabled={isSubmitting}
                 className="flex items-center gap-2 px-6 py-3 bg-emerald-500 text-white rounded-xl font-bold hover:bg-emerald-600 transition-all disabled:opacity-50">
                 <FiSend className="w-5 h-5" /> {isSubmitting ? 'Submitting...' : 'Submit'}
@@ -503,10 +542,10 @@ const AssessmentPage = () => {
           </div>
 
           {/* Mobile Question Navigator */}
-          <div className="md:hidden flex-shrink-0 mt-4 flex items-center justify-center gap-2 text-gray-500 text-sm">
+          <div className="md:hidden flex-shrink-0 mt-4 flex items-center justify-center gap-2 text-gray-500 text-sm notranslate" translate="no">
             <span className="text-emerald-600">{answeredCount} answered</span>
             <span>•</span>
-            <span>{attemptData.questions.length - answeredCount} remaining</span>
+            <span>{(attemptData?.questions?.length || 0) - answeredCount} remaining</span>
           </div>
         </div>
       </div>

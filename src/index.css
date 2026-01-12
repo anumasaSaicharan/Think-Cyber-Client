@@ -222,10 +222,16 @@ html:lang(gu) textarea, html:lang(mr) textarea, html:lang(pa) textarea {
   }
 }
 
-/* Prevent layout shift when language changes */
-.notranslate {
+/* Prevent layout shift when language changes - only for inline elements */
+span.notranslate,
+p.notranslate {
   display: inline-block;
   white-space: nowrap;
+}
+
+/* Prevent translation without affecting layout for block/flex elements */
+[translate="no"] {
+  /* This attribute tells Google Translate not to translate this element */
 }
 
 /* Fix Google Translate's font inheritance issues */
