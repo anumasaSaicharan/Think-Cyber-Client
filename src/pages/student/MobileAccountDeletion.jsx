@@ -72,6 +72,21 @@ const MobileAccountDeletion = () => {
     }
 
     if (deleted) {
+        // Notify parent/webview if applicable
+        try {
+            const payload = { event: 'account_deleted', success: true, userId };
+            // Try common channels used by webviews and iframes
+            if (window?.parent) {
+                window.parent.postMessage(payload, '*');
+            }
+            // Some environments (e.g., React Native WebView) expose a different bridge
+            if (window?.ReactNativeWebView?.postMessage) {
+                window.ReactNativeWebView.postMessage(JSON.stringify(payload));
+            }
+        } catch (e) {
+            // Silently ignore messaging errors to avoid disrupting UI
+        }
+
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
                 <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center transform transition-all">

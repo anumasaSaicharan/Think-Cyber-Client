@@ -62,6 +62,7 @@ const AppContent = () => {
           <Route path="/mobile/privacy-policy" element={<MobilePrivacyPolicy />} />
           <Route path="/mobile/terms-and-conditions" element={<MobileTermsAndConditions />} />
           <Route path="/mobile/account-deletion" element={<MobileAccountDeletion />} />
+          <Route path="/mobile/delete-account/:userId" element={<MobileAccountDeletion />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/assessment/:categoryId" element={<AssessmentPage />} />
           <Route path="/certificate/:assessmentId" element={<CertificatePage />} />
