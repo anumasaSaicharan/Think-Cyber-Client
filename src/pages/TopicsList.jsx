@@ -903,6 +903,15 @@ const TopicsList = () => {
                               </span>
                             )}
                           </div>
+                          {category.promotion_text &&
+                            category.promotion_text !== 'N/A' &&
+                            category.promotion_text.trim() !== '' && (
+                              <div className="mt-1">
+                                <span className="text-[10px] text-orange-600 font-medium bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">
+                                  {category.promotion_text}
+                                </span>
+                              </div>
+                            )}
                         </div>
                       </div>
 
@@ -946,8 +955,8 @@ const TopicsList = () => {
                               <div className="text-left">
                                 <p className="font-semibold text-sm">Take Assessment</p>
                                 <p className="text-xs opacity-90">
-                                  {assessmentConfig.has_passed 
-                                    ? '✓ Certificate Earned' 
+                                  {assessmentConfig.has_passed
+                                    ? '✓ Certificate Earned'
                                     : `${assessmentConfig.total_questions} questions · ${assessmentConfig.passing_percentage}% to pass`
                                   }
                                 </p>
@@ -1041,6 +1050,13 @@ const TopicsList = () => {
                               <h1 className="text-xl font-bold text-gray-800">
                                 {selectedCategoryObj.name}
                               </h1>
+                              {selectedCategoryObj.promotion_text &&
+                                selectedCategoryObj.promotion_text !== 'N/A' &&
+                                selectedCategoryObj.promotion_text.trim() !== '' && (
+                                  <span className="inline-block mt-1 px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-medium rounded-full border border-yellow-200 shadow-sm animate-pulse-slow">
+                                    {selectedCategoryObj.promotion_text}
+                                  </span>
+                                )}
                             </div>
                             {/* Pricing Info - Different for each plan type */}
                             {selectedCategoryObj.plan_type === 'FREE' && (
@@ -1126,8 +1142,8 @@ const TopicsList = () => {
                                 <div>
                                   <h3 className="font-bold text-green-800">Assessment Available</h3>
                                   <p className="text-sm text-green-700">
-                                    {assessmentConfig.has_passed 
-                                      ? 'You have passed this assessment and earned a certificate!' 
+                                    {assessmentConfig.has_passed
+                                      ? 'You have passed this assessment and earned a certificate!'
                                       : `Test your knowledge with ${assessmentConfig.total_questions} questions. Score ${assessmentConfig.passing_percentage}% or more to earn a certificate.`
                                     }
                                   </p>
@@ -1135,11 +1151,10 @@ const TopicsList = () => {
                               </div>
                               <button
                                 onClick={() => navigate(`/assessment/${selectedCategoryObj.id}`)}
-                                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                                  assessmentConfig.has_passed 
-                                    ? 'bg-green-600 text-white hover:bg-green-700' 
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
+                                className={`px-6 py-3 rounded-lg font-semibold transition-colors ${assessmentConfig.has_passed
+                                  ? 'bg-green-600 text-white hover:bg-green-700'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                                  }`}
                               >
                                 {assessmentConfig.has_passed ? 'View Certificate' : 'Take Assessment'}
                               </button>
