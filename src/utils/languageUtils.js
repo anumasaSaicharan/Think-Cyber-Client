@@ -37,35 +37,35 @@ export const INDIAN_STATE_LANGUAGE_MAP = {
   'AP': 'te',
   'TS': 'te',
   'TG': 'te',
-  
+
   // Tamil states
   'Tamil Nadu': 'ta',
   'TN': 'ta',
-  
+
   // Kannada states
   'Karnataka': 'kn',
   'KA': 'kn',
-  
+
   // Malayalam states
   'Kerala': 'ml',
   'KL': 'ml',
-  
+
   // Bengali states
   'West Bengal': 'bn',
   'WB': 'bn',
-  
+
   // Gujarati states
   'Gujarat': 'gu',
   'GJ': 'gu',
-  
+
   // Marathi states
   'Maharashtra': 'mr',
   'MH': 'mr',
-  
+
   // Punjabi states
   'Punjab': 'pa',
   'PB': 'pa',
-  
+
   // Hindi states (default for North India)
   'Delhi': 'hi',
   'Uttar Pradesh': 'hi',
@@ -94,7 +94,7 @@ export async function requestLocationPermission() {
   console.log('╔═══════════════════════════════════════════════════════╗');
   console.log('║     🌍 LOCATION PERMISSION REQUEST STARTED           ║');
   console.log('╚═══════════════════════════════════════════════════════╝');
-  
+
   return new Promise((resolve) => {
     if (!navigator.geolocation) {
       console.log('❌ Geolocation not supported by browser');
@@ -103,7 +103,7 @@ export async function requestLocationPermission() {
     }
 
     console.log('⏳ Requesting browser location permission...');
-    
+
     // Request location permission
     navigator.geolocation.getCurrentPosition(
       // Success - permission granted
@@ -111,7 +111,7 @@ export async function requestLocationPermission() {
         console.log('✅ ✅ ✅ LOCATION PERMISSION GRANTED! ✅ ✅ ✅');
         console.log('📍 Position:', position.coords);
         localStorage.setItem('locationPermissionStatus', 'granted');
-        
+
         // Now detect language from IP
         console.log('🔍 Now detecting language from IP...');
         const language = await detectLanguageFromIP();
@@ -124,7 +124,7 @@ export async function requestLocationPermission() {
         console.log('Error:', error.message);
         localStorage.setItem('locationPermissionStatus', 'denied');
         localStorage.setItem('locationDeniedTime', Date.now().toString());
-        
+
         // Fallback to English
         console.log('➡️ Falling back to ENGLISH');
         resolve({ language: 'en', permissionDenied: true });
@@ -146,7 +146,7 @@ export async function detectLanguageFromIP() {
   console.log('╔═══════════════════════════════════════════════════════╗');
   console.log('║        🔍 DETECTING LANGUAGE FROM IP                 ║');
   console.log('╚═══════════════════════════════════════════════════════╝');
-  
+
   try {
     // Try ipapi.co first - it provides detailed location info including region
     try {
@@ -157,7 +157,7 @@ export async function detectLanguageFromIP() {
         const countryCode = data.country_code || data.country;
         const region = data.region || data.region_code;
         const city = data.city;
-        
+
         console.log('📍 RAW LOCATION DATA:', {
           country: countryCode,
           state: region,
@@ -167,11 +167,11 @@ export async function detectLanguageFromIP() {
         console.log(`🗺️ DETECTED STATE: "${region}"`);
         console.log(`🏙️ DETECTED CITY: "${city}"`);
         console.log(`🌐 COUNTRY: "${countryCode}"`);
-        
+
         // If India, check for state-specific language
         if (countryCode === 'IN' && region) {
           console.log('🇮🇳 India detected! Checking state mapping...');
-          
+
           // Check state mapping
           if (INDIAN_STATE_LANGUAGE_MAP[region]) {
             const language = INDIAN_STATE_LANGUAGE_MAP[region];
@@ -180,12 +180,12 @@ export async function detectLanguageFromIP() {
           } else {
             console.log(`⚠️ STATE "${region}" not found in mapping. Checking city...`);
           }
-          
+
           // Check if city name helps identify state
           const cityLower = city?.toLowerCase();
           if (cityLower) {
             console.log(`🔍 Checking city: "${cityLower}"`);
-            
+
             if (cityLower.includes('hyderabad') || cityLower.includes('warangal') || cityLower.includes('nizamabad')) {
               console.log('✅ TELANGANA CITY DETECTED → Setting TELUGU (te)');
               return 'te';
@@ -218,13 +218,13 @@ export async function detectLanguageFromIP() {
               console.log('✅ GUJARAT CITY DETECTED → Setting GUJARATI (gu)');
               return 'gu';
             }
-            
+
             console.log(`⚠️ City "${cityLower}" didn't match any known patterns`);
           }
-          
+
           console.log('⚠️ No state/city match found. Defaulting to HINDI for India');
         }
-        
+
         // Fall back to country-level mapping
         if (countryCode && COUNTRY_LANGUAGE_MAP[countryCode]) {
           const language = COUNTRY_LANGUAGE_MAP[countryCode];
@@ -235,20 +235,20 @@ export async function detectLanguageFromIP() {
     } catch (err) {
       console.error('❌ ipapi.co failed:', err.message);
     }
-    
+
     // Try other services as fallback
     const fallbackServices = [
       'https://api.country.is/',
       'https://geolocation-db.com/json/'
     ];
-    
+
     for (const service of fallbackServices) {
       try {
         const response = await fetch(service, { timeout: 3000 });
         if (response.ok) {
           const data = await response.json();
           const countryCode = data.country_code || data.country || data.countryCode;
-          
+
           if (countryCode && COUNTRY_LANGUAGE_MAP[countryCode]) {
             console.log(`Location detected: ${countryCode}, Language: ${COUNTRY_LANGUAGE_MAP[countryCode]}`);
             return COUNTRY_LANGUAGE_MAP[countryCode];
@@ -262,7 +262,7 @@ export async function detectLanguageFromIP() {
   } catch (error) {
     console.log('All geolocation services failed:', error);
   }
-  
+
   // Fallback to English (not browser language)
   return 'en';
 }
@@ -275,14 +275,14 @@ export function detectBrowserLanguage() {
   const browserLang = navigator.language || navigator.userLanguage;
   if (browserLang) {
     const langCode = browserLang.split('-')[0].toLowerCase();
-    
+
     // Check if we support this language
     if (SUPPORTED_LANGUAGES.find(l => l.code === langCode)) {
       console.log('Using browser language:', langCode);
       return langCode;
     }
   }
-  
+
   return 'en'; // Always fallback to English
 }
 
@@ -365,7 +365,7 @@ export function getCurrentLanguage() {
   if (stored && SUPPORTED_LANGUAGES.find(l => l.code === stored)) {
     return stored;
   }
-  
+
   // Check googtrans cookie
   const googtrans = getCookie('googtrans');
   if (googtrans) {
@@ -377,14 +377,14 @@ export function getCurrentLanguage() {
       }
     }
   }
-  
+
   // Check URL parameter
   const urlParams = new URLSearchParams(window.location.search);
   const urlLang = urlParams.get('lang');
   if (urlLang && SUPPORTED_LANGUAGES.find(l => l.code === urlLang)) {
     return urlLang;
   }
-  
+
   return 'en';
 }
 
@@ -397,10 +397,10 @@ export function setLanguagePreference(languageCode) {
   sessionStorage.setItem('preferredLanguage', languageCode);
   setCookie('googtrans', `/auto/${languageCode}`);
   setCookie('preferredLanguage', languageCode);
-  
+
   // Update HTML lang attribute for better accessibility and SEO
   document.documentElement.lang = languageCode;
-  
+
   // Dispatch event for other components
   window.dispatchEvent(new CustomEvent('languageChanged', {
     detail: { language: languageCode }
@@ -453,7 +453,7 @@ export function shouldAutoDetect() {
   // Don't auto-detect if user has already chosen a language
   const hasPreference = localStorage.getItem('preferredLanguage') !== null;
   const hasAutoDetected = sessionStorage.getItem('autoDetected') === 'true';
-  
+
   return !hasPreference && !hasAutoDetected;
 }
 
@@ -469,17 +469,17 @@ export function markAutoDetected() {
  */
 export function resetLanguagePreferences() {
   console.log('🗑️ Resetting all language preferences...');
-  
+
   // Clear localStorage
   localStorage.removeItem('preferredLanguage');
   localStorage.removeItem('locationPermissionStatus');
   localStorage.removeItem('locationDeniedTime');
-  
+
   // Clear sessionStorage
   sessionStorage.removeItem('preferredLanguage');
   sessionStorage.removeItem('autoDetected');
   sessionStorage.removeItem('locationPromptDismissed');
-  
+
   // Clear ALL cookies
   const cookies = document.cookie.split(";");
   for (let i = 0; i < cookies.length; i++) {
@@ -489,10 +489,10 @@ export function resetLanguagePreferences() {
     document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
     document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
   }
-  
+
   // Reset HTML lang attribute
   document.documentElement.lang = 'en';
-  
+
   console.log('✅ All language data cleared!');
   console.log('🔄 Reload the page to start fresh');
 }

@@ -1,13 +1,17 @@
 import React, { useContext, useState, useRef, useEffect } from 'react';
 import { assets } from '../../assets/assets';
+import YouTube from 'react-youtube';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Loading from '../../components/student/Loading';
-import { topicService, categoriesService } from '../../services/apiService';
+import { topicService, categoriesService, videoProgressService } from '../../services/apiService';
 import { AppContext } from '../../context/AppContext';
+
 import MarkdownRenderer from '../../components/MarkdownRenderer';
+import CheckoutModal from '../../components/student/CheckoutModal';
 
 const CourseDetails = () => {
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [modalVideo, setModalVideo] = useState(null);
   const { id } = useParams();
@@ -17,6 +21,11 @@ const CourseDetails = () => {
   const [categoryPlanType, setCategoryPlanType] = useState(null);
   const [categoryDetails, setCategoryDetails] = useState(null);
   const [isExpired, setIsExpired] = useState(false);
+
+  const [videoProgress, setVideoProgress] = useState({}); // Map: videoId -> { watchTime, isCompleted }
+  const videoPlayerRef = useRef(null); // For HTML5 video
+  const youtubePlayerRef = useRef(null); // For YouTube video
+  const progressUpdateInterval = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -163,67 +172,88 @@ const CourseDetails = () => {
         toast.error(error?.response?.data?.error || 'Failed to enroll');
       }
     } else {
-      // Paid course - use Razorpay
-      try {
-        const currencyCode = currency === '₹' ? 'INR' : 'USD';
-        const response = await topicService.enrollInTopic({
-          userId: userData.id,
-          topicId: courseData.id,
-          email: userData.email,
-          currency: currencyCode,
-        });
+      // Paid course - use Razorpay via CheckoutModal
+      setShowCheckoutModal(true);
+    }
+  };
 
-        if (response.success && response.requiresPayment) {
-          const options = {
-            key: response.keyId,
-            amount: response.amount,
-            currency: response.currency,
-            name: 'ThinkCyber',
-            description: courseData.title,
-            order_id: response.orderId,
-            handler: async function (razorpayResponse) {
-              try {
-                const verifyData = await topicService.verifyPayment({
-                  razorpay_order_id: razorpayResponse.razorpay_order_id,
-                  razorpay_payment_id: razorpayResponse.razorpay_payment_id,
-                  razorpay_signature: razorpayResponse.razorpay_signature,
-                  userId: userData.id,
-                  topicId: courseData.id,
+  const handleCheckoutProceed = async (finalAmount, appliedCoupon) => {
+    setShowCheckoutModal(false);
+
+    try {
+      const currencyCode = currency === '₹' ? 'INR' : 'USD';
+
+      // Determine effective price: use finalAmount from modal logic
+      // We pass the coupon code to the backend so it can verify/record it
+      const response = await topicService.enrollInTopic({
+        userId: userData.id,
+        topicId: courseData.id,
+        email: userData.email,
+        currency: currencyCode,
+        couponCode: appliedCoupon ? appliedCoupon.code : null,
+        // The backend should ideally recalculate price, but for now we might rely on it returning the correct amount
+        // or we trust the frontend 'finalAmount' if the backend allows (usually bad practice, but per user request logic)
+        // Actually, the prompt says "User enters coupon: Validate and calculate finalTotal on your server."
+        // So we just pass the coupon code, and the backend (mocked or real) should handle the rest.
+        // However, since we don't have a real backend doing the calc, we might need to rely on the current flow 
+        // which returns an order.
+      });
+
+      if (response.success && response.requiresPayment) {
+        // If the coupon made it free (100% off), the backend should have handled it. 
+        // But if payment is still required:
+        const options = {
+          key: response.keyId,
+          amount: response.amount, // This should come from backend based on coupon
+          currency: response.currency,
+          name: 'ThinkCyber',
+          description: courseData.title,
+          order_id: response.orderId,
+          handler: async function (razorpayResponse) {
+            try {
+              const verifyData = await topicService.verifyPayment({
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature: razorpayResponse.razorpay_signature,
+                userId: userData.id,
+                topicId: courseData.id,
+                couponCode: appliedCoupon ? appliedCoupon.code : null // Pass coupon to verification too just in case
+              });
+              if (verifyData.success) {
+                toast.success('Payment successful! You are now enrolled.');
+                checkEnrollment().then(result => {
+                  setIsAlreadyEnrolled(result.enrolled);
+                  setIsExpired(false);
                 });
-                if (verifyData.success) {
-                  toast.success('Payment successful! You are now enrolled.');
-                  checkEnrollment().then(result => {
-                    setIsAlreadyEnrolled(result.enrolled);
-                    setIsExpired(false);
-                  });
-                } else {
-                  toast.error('Payment verification failed');
-                }
-              } catch (error) {
+              } else {
                 toast.error('Payment verification failed');
               }
-            },
-            prefill: {
-              name: userData.name || '',
-              email: userData.email || '',
-              contact: userData.phone || '',
-            },
-            theme: { color: '#2563eb' },
-          };
-          const razorpay = new window.Razorpay(options);
-          razorpay.open();
-        } else if (response.success) {
-          toast.success('Successfully enrolled!');
-          checkEnrollment().then(result => {
-            setIsAlreadyEnrolled(result.enrolled);
-            setIsExpired(false);
-          });
-        } else {
-          toast.error(response.error || 'Enrollment failed');
-        }
-      } catch (err) {
-        toast.error(err?.response?.data?.error || 'Enrollment failed');
+            } catch (error) {
+              toast.error('Payment verification failed');
+            }
+          },
+          prefill: {
+            name: userData.name || '',
+            email: userData.email || '',
+            contact: userData.phone || '',
+          },
+          theme: { color: '#2563eb' },
+        };
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      } else if (response.success) {
+        // Free enrollment (e.g. 100% discount or free course)
+        toast.success('Successfully enrolled!');
+        checkEnrollment().then(result => {
+          setIsAlreadyEnrolled(result.enrolled);
+          setIsExpired(false);
+        });
+      } else {
+        toast.error(response.error || 'Enrollment failed');
       }
+    } catch (err) {
+      toast.error(err?.response?.data?.error || 'Enrollment failed');
+      console.error(err);
     }
   };
 
@@ -236,8 +266,6 @@ const CourseDetails = () => {
       // First try the new endpoint
       const res = await topicService.checkTopicAccess(userData.id, id);
       if (res?.hasAccess !== undefined) {
-        // If the API returns the date, use it. Otherwise we might have boolean access but unknown date
-        // Assuming the API returns some date field like 'enrolled_at' or 'created_at' in the object
         return {
           enrolled: res.hasAccess,
           enrolledAt: res.enrolled_at || res.created_at || res.createdAt
@@ -256,11 +284,73 @@ const CourseDetails = () => {
     }
   };
 
+  const fetchVideoProgress = async () => {
+    if (!userData || !userData.id || !id) return;
+    try {
+      const res = await videoProgressService.getTopicProgress(id, userData.id);
+      if (res.success && res.data) {
+        const progressMap = {};
+        res.data.forEach(p => {
+          progressMap[p.video_id] = {
+            watchTime: p.watch_time_seconds,
+            isCompleted: p.is_completed
+          };
+        });
+        setVideoProgress(progressMap);
+      }
+    } catch (error) {
+      console.error('Error fetching video progress:', error);
+    }
+  };
+
+  const updateVideoProgress = async (videoId, currentTime, duration, isEnded = false) => {
+    if (!userData || !userData.id || !courseData) return;
+
+    // Calculate completion (e.g., > 90%)
+    const isCompleted = isEnded || (duration > 0 && (currentTime / duration) > 0.9);
+
+    // Optimistic update
+    setVideoProgress(prev => ({
+      ...prev,
+      [videoId]: {
+        watchTime: Math.floor(currentTime),
+        isCompleted: isCompleted || (prev[videoId]?.isCompleted)
+      }
+    }));
+
+    try {
+      // Find module ID for the video
+      let moduleId = null;
+      courseData.modules.forEach(m => {
+        if (m.videos.some(v => v.id === videoId)) {
+          moduleId = m.id;
+        }
+      });
+
+      if (!moduleId) return;
+
+      await videoProgressService.updateProgress({
+        topicId: courseData.id,
+        moduleId,
+        videoId,
+        userId: userData.id,
+        watchTimeSeconds: Math.floor(currentTime),
+        isCompleted
+      });
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+    }
+  };
+
   useEffect(() => {
     const fetchAll = async () => {
       await fetchCourseData();
       if (userData && id) {
         const { enrolled, enrolledAt } = await checkEnrollment();
+
+        if (enrolled) {
+          fetchVideoProgress();
+        }
 
         let expired = false;
         if (enrolled && enrolledAt) {
@@ -333,6 +423,23 @@ const CourseDetails = () => {
   };
 
   const closeVideoModal = () => {
+    // Clear interval if exists
+    if (progressUpdateInterval.current) {
+      clearInterval(progressUpdateInterval.current);
+      progressUpdateInterval.current = null;
+    }
+
+    // Final save if video was playing (manual handle)
+    if (modalVideo) {
+      if (videoPlayerRef.current) {
+        updateVideoProgress(modalVideo.id, videoPlayerRef.current.currentTime, videoPlayerRef.current.duration, false);
+      }
+      if (youtubePlayerRef.current && typeof youtubePlayerRef.current.getCurrentTime === 'function') {
+        // This might track slightly after it closed, but usually ref is null by then.
+        // Rely on onStateChange or interval mostly.
+      }
+    }
+
     setShowVideoModal(false);
     setModalVideo(null);
   };
@@ -512,6 +619,9 @@ const CourseDetails = () => {
                                     <span className="text-gray-800 text-base font-medium w-full">
                                       {video.title || 'Watch Video'}
                                     </span>
+                                    {videoProgress[video.id]?.isCompleted && (
+                                      <span className="text-green-500 font-bold ml-2">✓</span>
+                                    )}
                                     {video.duration && (
                                       <span className="ml-2 text-gray-500 text-sm font-normal">
                                         {video.duration} mins
@@ -731,23 +841,82 @@ const CourseDetails = () => {
               {modalVideo.videoUrl &&
                 (modalVideo.videoUrl.includes('youtube.com') ||
                   modalVideo.videoUrl.includes('youtu.be') ? (
-                  <iframe
-                    className="w-full h-full aspect-video"
-                    src={`https://www.youtube.com/embed/${modalVideo.videoUrl.split('v=')[1] ||
-                      modalVideo.videoUrl.split('/').pop()
-                      }`}
-                    title={modalVideo.title}
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
+                  <YouTube
+                    videoId={modalVideo.videoUrl.split('v=')[1] || modalVideo.videoUrl.split('/').pop()}
+                    opts={{
+                      width: '100%',
+                      height: '100%',
+                      playerVars: {
+                        autoplay: 1,
+                        start: videoProgress[modalVideo.id]?.watchTime || 0
+                      },
+                    }}
+                    className="w-full h-full"
+                    iframeClassName="w-full h-full"
+                    onReady={(event) => {
+                      youtubePlayerRef.current = event.target;
+                      // Seek availability check
+                      const savedTime = videoProgress[modalVideo.id]?.watchTime || 0;
+                      if (savedTime > 0) {
+                        event.target.seekTo(savedTime);
+                      }
+                    }}
+                    onStateChange={(event) => {
+                      // 1 = playing, 2 = paused, 0 = ended
+                      if (event.data === 1) {
+                        // Start interval
+                        if (progressUpdateInterval.current) clearInterval(progressUpdateInterval.current);
+                        progressUpdateInterval.current = setInterval(() => {
+                          const currentTime = event.target.getCurrentTime();
+                          const duration = event.target.getDuration();
+                          updateVideoProgress(modalVideo.id, currentTime, duration, false);
+                        }, 10000); // Update every 10s
+                      } else {
+                        // Clear interval
+                        if (progressUpdateInterval.current) clearInterval(progressUpdateInterval.current);
+
+                        // Save on pause or end
+                        if (event.data === 2 || event.data === 0) {
+                          const currentTime = event.target.getCurrentTime();
+                          const duration = event.target.getDuration();
+                          updateVideoProgress(modalVideo.id, currentTime, duration, event.data === 0);
+                        }
+                      }
+                    }}
                   />
                 ) : (
                   <video
+                    ref={videoPlayerRef}
                     controls
                     controlsList="nodownload"
                     onContextMenu={(e) => e.preventDefault()}
                     disablePictureInPicture
                     className="max-w-full max-h-[70vh] w-auto h-auto object-contain"
+                    onLoadedMetadata={(e) => {
+                      const savedTime = videoProgress[modalVideo.id]?.watchTime || 0;
+                      if (savedTime > 0) {
+                        e.target.currentTime = savedTime;
+                      }
+                    }}
+                    onTimeUpdate={(e) => {
+                      const currentTime = e.target.currentTime;
+                      const duration = e.target.duration;
+                      // Throttle: only update if integer second changed by 5s or something, 
+                      // but simpler to just do it every 5s logic or use a lastUpdate ref.
+                      // For now, let's just do it on pause/cleanup or essentially every 10s.
+                      // Actually, onTimeUpdate fires rapidly. Use a meaningful check.
+
+                      if (!e.target.lastUpdate || (currentTime - e.target.lastUpdate) > 10) {
+                        updateVideoProgress(modalVideo.id, currentTime, duration, false);
+                        e.target.lastUpdate = currentTime;
+                      }
+                    }}
+                    onPause={(e) => {
+                      updateVideoProgress(modalVideo.id, e.target.currentTime, e.target.duration, false);
+                    }}
+                    onEnded={(e) => {
+                      updateVideoProgress(modalVideo.id, e.target.currentTime, e.target.duration, true);
+                    }}
                   >
                     <source src={modalVideo.videoUrl} type="video/mp4" />
                     Your browser does not support the video tag.
@@ -757,6 +926,18 @@ const CourseDetails = () => {
           </div>
         </div >
       )}
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        itemData={courseData ? {
+          title: courseData.title,
+          price: courseData.price,
+          type: 'COURSE',
+          thumbnail: courseData.thumbnail
+        } : null}
+        onProceed={handleCheckoutProceed}
+        currency={currency}
+      />
     </>
   ) : (
     <Loading />

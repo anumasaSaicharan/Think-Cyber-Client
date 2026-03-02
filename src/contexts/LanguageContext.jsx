@@ -57,12 +57,12 @@ export const LanguageProvider = ({ children }) => {
       const maxAttempts = 30;
 
       const checkTranslate = () => {
-        const select = document.querySelector('.goog-te-combo') || 
-                      document.querySelector('#google_translate_element select');
-        
+        const select = document.querySelector('.goog-te-combo') ||
+          document.querySelector('#google_translate_element select');
+
         if (select) {
           console.log('✅ Google Translate widget found!');
-          
+
           try {
             if (select.value !== targetLang) {
               console.log('🔄 Setting language to:', targetLang);
@@ -72,7 +72,7 @@ export const LanguageProvider = ({ children }) => {
           } catch (e) {
             console.warn('⚠️ Could not set language:', e);
           }
-          
+
           // Wait a bit for translation to apply
           setTimeout(resolve, 1500);
         } else {

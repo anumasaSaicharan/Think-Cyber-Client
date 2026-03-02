@@ -47,6 +47,7 @@ export const API_ENDPOINTS = {
   USER_ENROLLS_TOPIC: (userId, topicId) => `${BASE_URL}${API_VERSION}/enrollments/user/${userId}/topic/${topicId}`,
   VERIFY_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-payment`,
   CREATE_ORDER: `${BASE_URL}${API_VERSION}/enrollments/create-order`,
+  VALIDATE_COUPON: `${BASE_URL}${API_VERSION}/coupons/validate`,
   VERIFY_BUNDLE_PAYMENT: `${BASE_URL}${API_VERSION}/enrollments/verify-bundle-payment`,
 
   // User profile
@@ -77,6 +78,10 @@ export const API_ENDPOINTS = {
   // Certificates
   USER_CERTIFICATES: (userId) => `${BASE_URL}${API_VERSION}/certificates/user/${userId}`,
   CERTIFICATE_BY_NUMBER: (certNumber) => `${BASE_URL}${API_VERSION}/certificates/${certNumber}`,
+
+  // Video Progress
+  VIDEO_PROGRESS_UPDATE: `${BASE_URL}${API_VERSION}/video-progress/update`,
+  VIDEO_PROGRESS_BY_TOPIC: (topicId) => `${BASE_URL}${API_VERSION}/video-progress/${topicId}`,
 
 };
 

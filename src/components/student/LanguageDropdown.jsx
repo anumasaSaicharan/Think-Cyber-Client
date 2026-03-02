@@ -59,7 +59,7 @@ async function detectLanguageFromLocation() {
       const data = await response.json();
       const countryCode = data.country_code;
       console.log('Detected country:', countryCode);
-      
+
       // Return language based on country, or try browser language
       if (COUNTRY_TO_LANGUAGE[countryCode]) {
         return COUNTRY_TO_LANGUAGE[countryCode];
@@ -68,7 +68,7 @@ async function detectLanguageFromLocation() {
   } catch (error) {
     console.log('Location detection failed:', error);
   }
-  
+
   // Fallback to browser language
   const browserLang = navigator.language || navigator.userLanguage;
   if (browserLang) {
@@ -79,7 +79,7 @@ async function detectLanguageFromLocation() {
       return langCode;
     }
   }
-  
+
   return 'en'; // Default to English
 }
 
@@ -88,17 +88,17 @@ function getCurrentLanguage() {
   // Priority: localStorage > cookie > URL param > default
   const stored = localStorage.getItem('preferredLanguage');
   if (stored) return stored;
-  
+
   const googtrans = getCookie('googtrans');
   if (googtrans) {
     const parts = googtrans.split('/');
     if (parts.length >= 3) return parts[2];
   }
-  
+
   const urlParams = new URLSearchParams(window.location.search);
   const urlLang = urlParams.get('lang');
   if (urlLang) return urlLang;
-  
+
   return 'en';
 }
 
@@ -153,7 +153,7 @@ function tryGoogleTranslate(targetCode) {
       // Also try a second cookie write
       try {
         document.cookie = `googtrans=/auto/${targetCode}; path=/; max-age=31536000; SameSite=Lax`;
-      } catch (e) {}
+      } catch (e) { }
 
       // Change select value and trigger events
       try {
@@ -162,7 +162,7 @@ function tryGoogleTranslate(targetCode) {
           select.value = targetCode;
           select.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
           select.dispatchEvent(new Event('input', { bubbles: true }));
-          setTimeout(() => { try { select.click(); } catch (e) {} }, 100);
+          setTimeout(() => { try { select.click(); } catch (e) { } }, 100);
         } else {
           console.log(`Already at target language: ${targetCode}`);
         }
@@ -182,13 +182,13 @@ function tryGoogleTranslate(targetCode) {
 function tryPageReload(targetCode) {
   return new Promise((resolve) => {
     console.log(`Using page reload method for language: ${targetCode}`);
-    
+
     // Store preference in multiple locations for reliability
     localStorage.setItem('preferredLanguage', targetCode);
     sessionStorage.setItem('preferredLanguage', targetCode);
     setCookie('googtrans', `/auto/${targetCode}`);
     setCookie('preferredLanguage', targetCode);
-    
+
     // Show user feedback
     const body = document.body;
     const overlay = document.createElement('div');
@@ -234,15 +234,15 @@ function tryPageReload(targetCode) {
       </style>
     `;
     body.appendChild(overlay);
-    
+
     // Add language parameter to URL and reload
     const url = new URL(window.location);
     url.searchParams.set('lang', targetCode);
-    
+
     setTimeout(() => {
       window.location.href = url.toString();
     }, 800);
-    
+
     resolve();
   });
 }
@@ -251,16 +251,16 @@ function tryPageReload(targetCode) {
 function tryManualTranslation(targetCode) {
   return new Promise((resolve) => {
     console.log('Using manual translation method');
-    
+
     // Store the language preference
     localStorage.setItem('preferredLanguage', targetCode);
     setCookie('googtrans', `/auto/${targetCode}`);
-    
+
     // Dispatch custom event for other components to listen
-    window.dispatchEvent(new CustomEvent('languageChanged', { 
-      detail: { language: targetCode } 
+    window.dispatchEvent(new CustomEvent('languageChanged', {
+      detail: { language: targetCode }
     }));
-    
+
     resolve();
   });
 }
@@ -315,15 +315,15 @@ async function changeLanguage(targetCode) {
           await tryPageReload(targetCode);
           break;
         }
-        
+
       case TRANSLATION_MODES.PAGE_RELOAD:
         await tryPageReload(targetCode);
         break;
-        
+
       case TRANSLATION_MODES.MANUAL:
         await tryManualTranslation(targetCode);
         break;
-        
+
       default:
         console.log('Unknown translation mode, using manual method');
         await tryManualTranslation(targetCode);
@@ -333,7 +333,7 @@ async function changeLanguage(targetCode) {
     // Last resort - store preference and try page reload
     localStorage.setItem('preferredLanguage', targetCode);
     setCookie('googtrans', `/auto/${targetCode}`);
-    
+
     // Force page reload as final fallback
     if (confirm(`Translation system error. Reload page to apply ${targetCode.toUpperCase()} language?`)) {
       window.location.reload();
@@ -361,7 +361,7 @@ function initializeGoogleTranslate() {
         }
 
         // Define initialization
-        window.googleTranslateElementInit = function() {
+        window.googleTranslateElementInit = function () {
           try {
             new window.google.translate.TranslateElement(
               {
@@ -391,7 +391,7 @@ function initializeGoogleTranslate() {
           };
           document.head.appendChild(script);
         }
-        
+
         resolve();
       } catch (error) {
         console.log('Google Translate setup failed:', error);
@@ -426,7 +426,7 @@ export default function LanguageDropdown({ assets }) {
     const locationStatus = localStorage.getItem('locationPermissionStatus');
     const deniedTime = localStorage.getItem('locationDeniedTime');
     const promptDismissed = sessionStorage.getItem('locationPromptDismissed');
-    
+
     console.log('📊 Current state:', {
       locationStatus,
       deniedTime,
@@ -434,7 +434,7 @@ export default function LanguageDropdown({ assets }) {
       currentLang,
       cookies: document.cookie
     });
-    
+
     // Show prompt if location was denied and user hasn't dismissed it this session
     if (locationStatus === 'denied' && !promptDismissed) {
       // Show prompt after a short delay
@@ -449,26 +449,26 @@ export default function LanguageDropdown({ assets }) {
     console.log('╔════════════════════════════════════════════════════════╗');
     console.log('║   🚀 LANGUAGE DROPDOWN COMPONENT MOUNTED              ║');
     console.log('╚════════════════════════════════════════════════════════╝');
-    
+
     // Always mark as ready - we have fallbacks
     setReady(true);
-    
+
     // Check if user has already selected a language
     const savedLang = getCurrentLanguage();
     console.log('📦 Saved language preference:', savedLang || 'NONE');
     console.log('💾 localStorage preferredLanguage:', localStorage.getItem('preferredLanguage') || 'NONE');
     console.log('🔐 locationPermissionStatus:', localStorage.getItem('locationPermissionStatus') || 'NONE');
-    
+
     // If no language preference exists, request location permission
     if (savedLang === 'en' && !localStorage.getItem('preferredLanguage')) {
       console.log('✨ No language preference found!');
       console.log('🎯 Starting location-based detection...');
       console.log('════════════════════════════════════════════════════════');
-      
+
       // Request location permission
       if (navigator.geolocation && !localStorage.getItem('locationPermissionStatus')) {
         console.log('📍 Geolocation API available, requesting permission...');
-        
+
         navigator.geolocation.getCurrentPosition(
           // Success
           async (position) => {
@@ -477,7 +477,7 @@ export default function LanguageDropdown({ assets }) {
             console.log('═══════════════════════════════════════════════════════');
             console.log('📍 Browser Position:', position.coords);
             localStorage.setItem('locationPermissionStatus', 'granted');
-            
+
             // Detect language from IP with state detection
             try {
               console.log('🌍 Starting IP-based location detection...');
@@ -487,7 +487,7 @@ export default function LanguageDropdown({ assets }) {
                 const countryCode = data.country_code;
                 const region = data.region || data.region_code;
                 const city = data.city;
-                
+
                 console.log('═══════════════════════════════════');
                 console.log('📍 LOCATION DETECTION DETAILS');
                 console.log('═══════════════════════════════════');
@@ -496,13 +496,13 @@ export default function LanguageDropdown({ assets }) {
                 console.log('🌐 Country Code:', countryCode);
                 console.log('📦 Full Data:', data);
                 console.log('═══════════════════════════════════');
-                
+
                 let detectedLang = 'en';
-                
+
                 // If India, detect state/city for regional language
                 if (countryCode === 'IN') {
                   console.log('🇮🇳 INDIA DETECTED - Checking regional language...');
-                  
+
                   // State mapping
                   const stateMap = {
                     'Telangana': 'te', 'TS': 'te', 'TG': 'te',
@@ -515,19 +515,19 @@ export default function LanguageDropdown({ assets }) {
                     'Maharashtra': 'mr', 'MH': 'mr',
                     'Punjab': 'pa', 'PB': 'pa'
                   };
-                  
+
                   console.log('🔍 Checking state mapping for:', region);
-                  
+
                   if (region && stateMap[region]) {
                     detectedLang = stateMap[region];
                     console.log(`✅ STATE MATCHED: "${region}" → ${detectedLang.toUpperCase()}`);
                   } else {
                     console.log(`⚠️  State "${region}" not in mapping, trying city detection...`);
-                    
+
                     if (city) {
                       const cityLower = city.toLowerCase();
                       console.log('🔍 Checking city name:', cityLower);
-                      
+
                       if (cityLower.includes('hyderabad') || cityLower.includes('warangal') || cityLower.includes('nizamabad')) {
                         detectedLang = 'te';
                         console.log('✅ TELANGANA CITY → TELUGU (te)');
@@ -572,16 +572,16 @@ export default function LanguageDropdown({ assets }) {
                   detectedLang = countryMap[countryCode] || 'en';
                   console.log(`Mapped to language: ${detectedLang}`);
                 }
-                
+
                 console.log('═══════════════════════════════════');
                 console.log('🎯 FINAL DETECTED LANGUAGE:', detectedLang.toUpperCase());
                 console.log('═══════════════════════════════════');
-                
+
                 if (detectedLang !== 'en') {
                   localStorage.setItem('preferredLanguage', detectedLang);
                   setCurrentLang(detectedLang);
                   setCookie('googtrans', `/auto/${detectedLang}`);
-                  
+
                   setTimeout(() => {
                     changeLanguage(detectedLang);
                   }, 2000);
@@ -617,7 +617,7 @@ export default function LanguageDropdown({ assets }) {
       console.log('⏭️ Skipping auto-detection');
       setCurrentLang(savedLang);
     }
-    
+
     // Try to set up Google Translate in the background
     initializeGoogleTranslate().then(() => {
       // Check multiple times for Google Translate availability with longer timeout
@@ -675,7 +675,7 @@ export default function LanguageDropdown({ assets }) {
         setCurrentLang(event.detail.language);
       }
     };
-    
+
     window.addEventListener('languageChanged', handleLanguageChange);
     return () => window.removeEventListener('languageChanged', handleLanguageChange);
   }, []);
@@ -683,18 +683,18 @@ export default function LanguageDropdown({ assets }) {
   // Handle language selection
   const handleLanguageSelect = async (lang) => {
     setOpen(false);
-    
+
     if (isLoading || lang.code === currentLang) {
       return;
     }
 
     setIsLoading(true);
-    
+
     try {
       await changeLanguage(lang.code);
       setCurrentLang(lang.code);
       console.log(`Successfully changed language to ${lang.label}`);
-      
+
       // Wait for translation to apply
       await new Promise(resolve => setTimeout(resolve, 1500));
     } catch (error) {
@@ -713,16 +713,16 @@ export default function LanguageDropdown({ assets }) {
 
   const getStatusMessage = () => {
     if (isLoading) return "⏳ Changing language...";
-    
+
     switch (translationMode) {
       case TRANSLATION_MODES.GOOGLE_TRANSLATE:
-        return "🌐 Google Translate active";
+        return "";
       case TRANSLATION_MODES.PAGE_RELOAD:
-        return "📄 Page refresh mode";
+        return "";
       case TRANSLATION_MODES.MANUAL:
-        return "⚙️ Manual mode";
+        return "";
       default:
-        return "✅ Ready";
+        return "";
     }
   };
 
@@ -798,7 +798,7 @@ export default function LanguageDropdown({ assets }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            
+
             <div className="text-center mb-4">
               <div className="text-5xl mb-3">📍</div>
               <h3 className="text-xl font-bold text-gray-800 mb-2">
@@ -845,9 +845,8 @@ export default function LanguageDropdown({ assets }) {
 
       <div className="relative" ref={dropdownRef}>
         <button
-          className={`flex items-center focus:outline-none transition-opacity ${
-            isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'
-          }`}
+          className={`flex items-center focus:outline-none transition-opacity ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80'
+            }`}
           onClick={() => !isLoading && setOpen(!open)}
           aria-label={`Select Language - Current: ${getCurrentLangLabel()}`}
           title={`Current Language: ${getCurrentLangLabel()}`}
@@ -859,43 +858,42 @@ export default function LanguageDropdown({ assets }) {
           )}
         </button>
 
-      {open && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 min-w-[260px] max-w-[320px] bg-white border border-gray-200 rounded-lg shadow-xl z-50">
-          <div className="px-4 pt-4 pb-2 border-b border-gray-100">
-            <p className="font-semibold text-gray-800 text-base">🌍 Select Language</p>
-            <p className="text-xs text-gray-500 mb-2">
-              Current: <span className="font-medium text-blue-600">{getCurrentLangLabel()}</span>
-            </p>
-            <p className="text-xs text-green-600">
-              {getStatusMessage()}
-            </p>
-          </div>
-          <ul className="py-2 max-h-[400px] overflow-y-auto scrollbar-visible">
-            {LANGS.map((lang) => (
-              <li
-                key={lang.code}
-                onClick={() => handleLanguageSelect(lang)}
-                className={`px-4 py-3 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${
-                  lang.code === currentLang 
-                    ? 'bg-blue-100 text-blue-700 font-medium' 
+        {open && (
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 min-w-[260px] max-w-[320px] bg-white border border-gray-200 rounded-lg shadow-xl z-50">
+            <div className="px-4 pt-4 pb-2 border-b border-gray-100">
+              <p className="font-semibold text-gray-800 text-base">🌍 Select Language</p>
+              <p className="text-xs text-gray-500 mb-2">
+                Current: <span className="font-medium text-blue-600">{getCurrentLangLabel()}</span>
+              </p>
+              <p className="text-xs text-green-600">
+                {getStatusMessage()}
+              </p>
+            </div>
+            <ul className="py-2 max-h-[400px] overflow-y-auto scrollbar-visible">
+              {LANGS.map((lang) => (
+                <li
+                  key={lang.code}
+                  onClick={() => handleLanguageSelect(lang)}
+                  className={`px-4 py-3 cursor-pointer hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors ${lang.code === currentLang
+                    ? 'bg-blue-100 text-blue-700 font-medium'
                     : 'text-gray-700'
-                } ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{lang.flag}</span>
-                    <span className="text-[14px] leading-tight">{lang.label}</span>
+                    } ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{lang.flag}</span>
+                      <span className="text-[14px] leading-tight">{lang.label}</span>
+                    </div>
+                    {lang.code === currentLang && (
+                      <span className="text-blue-500 font-bold text-lg">✓</span>
+                    )}
                   </div>
-                  {lang.code === currentLang && (
-                    <span className="text-blue-500 font-bold text-lg">✓</span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-      </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div >
     </>
   );
 }

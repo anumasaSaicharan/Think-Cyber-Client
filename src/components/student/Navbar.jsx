@@ -114,9 +114,9 @@ const Navbar = () => {
           <a href="/topics" className="hover:text-blue-600">Topics</a>
           <a href="/our-plans" className="hover:text-blue-600">Features</a>
           {dynamicPages.map((page) => (
-            <a 
-              key={page.id} 
-              href={`/page/${page.slug}`} 
+            <a
+              key={page.id}
+              href={`/page/${page.slug}`}
               className="hover:text-blue-600"
             >
               {page.navbar_label}
@@ -196,10 +196,10 @@ const Navbar = () => {
             <a href="/topics" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Topics</a>
             <a href="/our-plans" className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" onClick={() => setMobileMenuOpen(false)}>Our Plans</a>
             {dynamicPages.map((page) => (
-              <a 
+              <a
                 key={page.id}
-                href={`/page/${page.slug}`} 
-                className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100" 
+                href={`/page/${page.slug}`}
+                className="text-lg text-[#747579] font-semibold hover:text-blue-600 py-3 border-b border-gray-100"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {page.navbar_label}
@@ -230,7 +230,7 @@ const Navbar = () => {
                 console.log('✅ All language data cleared! Reloading...');
                 setTimeout(() => window.location.reload(), 500);
               }}
-             // className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors shadow-sm"
+            // className="flex items-center justify-center gap-2 w-full px-4 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors shadow-sm"
             >
               {/* <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />

@@ -34,26 +34,26 @@ apiClient.interceptors.response.use(
     // Wrap EVERYTHING in try-catch to prevent cross-origin errors from Razorpay iframes
     let errorMessage = 'Request failed';
     let statusCode = null;
-    
+
     try {
       // Try to get error message - each access wrapped separately
       try { if (error?.response?.data?.error) errorMessage = String(error.response.data.error); }
       catch (e) { /* ignore */ }
-      
+
       try { if (errorMessage === 'Request failed' && error?.response?.data?.message) errorMessage = String(error.response.data.message); }
       catch (e) { /* ignore */ }
-      
+
       try { if (errorMessage === 'Request failed' && error?.message) errorMessage = String(error.message); }
       catch (e) { /* ignore */ }
-      
+
       try { if (error?.response?.status) statusCode = error.response.status; }
       catch (e) { /* ignore */ }
     } catch (e) {
       // If anything fails, use defaults
     }
-    
+
     console.error('API Error:', errorMessage);
-    
+
     return Promise.reject({
       message: errorMessage,
       status: statusCode,
@@ -474,7 +474,14 @@ export const topicService = {
   // Create order (for both topics and bundles)
   createOrder: async (orderData) => {
     try {
-      const response = await apiClient.post(API_ENDPOINTS.CREATE_ORDER, orderData);
+      // Ensure amount is formatted as backend expects (e.g. string with 2 decimals if it's a number)
+      // This is to prevent floating point issues or backend rejection
+      const payload = { ...orderData };
+      if (payload.amount && typeof payload.amount === 'number') {
+        payload.amount = payload.amount.toFixed(2);
+      }
+
+      const response = await apiClient.post(API_ENDPOINTS.CREATE_ORDER, payload);
       return response;
     } catch (error) {
       console.error('Error creating order:', error);
@@ -489,6 +496,20 @@ export const topicService = {
       return response;
     } catch (error) {
       console.error('Error verifying bundle payment:', error);
+      throw error;
+    }
+  },
+
+  // Validate Coupon (Mock Implementation)
+  validateCoupon: async (code, userId) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.VALIDATE_COUPON, {
+        code,
+        userId
+      });
+      return response;
+    } catch (error) {
+      console.error('Error validating coupon:', error);
       throw error;
     }
   }
@@ -815,6 +836,35 @@ export const certificateService = {
     } catch (error) {
       console.error('Error verifying certificate:', String(error?.message || 'Request failed'));
       throw { message: 'Failed to verify certificate', error: 'Request failed' };
+    }
+  }
+};
+
+
+
+// Video Progress API Services
+export const videoProgressService = {
+  // Update video progress
+  updateProgress: async (progressData) => {
+    try {
+      const response = await apiClient.post(API_ENDPOINTS.VIDEO_PROGRESS_UPDATE, progressData);
+      return response;
+    } catch (error) {
+      console.error('Error updating video progress:', error);
+      throw error;
+    }
+  },
+
+  // Get progress for all videos in a topic
+  getTopicProgress: async (topicId, userId) => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.VIDEO_PROGRESS_BY_TOPIC(topicId), {
+        params: { userId }
+      });
+      return response;
+    } catch (error) {
+      console.error('Error fetching topic progress:', error);
+      throw error;
     }
   }
 };

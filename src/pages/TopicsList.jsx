@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContext } from '../context/AppContext';
+import CheckoutModal from '../components/student/CheckoutModal';
 
 const TopicsList = () => {
   const navigate = useNavigate();
@@ -14,6 +15,9 @@ const TopicsList = () => {
   const hasRestoredRef = useRef(false);
   const checkedTopicIdsRef = useRef(new Set());
   const checkEnrollmentTimeoutRef = useRef(null);
+
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [selectedBundleCategory, setSelectedBundleCategory] = useState(null);
 
   // State declarations
   const [topicsData, setTopicsData] = useState([]);
@@ -71,7 +75,10 @@ const TopicsList = () => {
           .map(category => ({
             ...category,
             plan_type: category.plan_type || 'BUNDLE',
-            subcategories: subcategoriesData.filter(sub => sub.category_id === category.id)
+            subcategories: subcategoriesData.filter(sub =>
+              (Number(sub.category_id) === Number(category.id)) ||
+              (Number(sub.categoryId) === Number(category.id))
+            )
           }));
 
         console.log('Categories with subcategories:', categoriesWithSubcategories);
@@ -640,27 +647,43 @@ const TopicsList = () => {
     }
 
     try {
+      // Open Checkout Modal
+      setSelectedBundleCategory(category);
+      setShowCheckoutModal(true);
+    } catch (error) {
+      console.error('Bundle purchase error:', error);
+      toast.error('Failed to initiate bundle purchase');
+    }
+  };
+
+  const handleCheckoutProceed = async (finalAmount, appliedCoupon) => {
+    setShowCheckoutModal(false);
+
+    if (!selectedBundleCategory) return;
+
+    try {
       const currencyCode = currency === '₹' ? 'INR' : 'USD';
       console.log('Initiating bundle purchase with Razorpay');
 
       // Create order for category bundle
       const orderData = await topicService.createOrder({
         userId: userData.id,
-        categoryId: category.id,
-        amount: category.bundle_price,
+        categoryId: selectedBundleCategory.id,
+        amount: finalAmount, // Use the discounted amount from CheckoutModal
         currency: currencyCode,
         email: userData.email,
-        isBundle: true
+        isBundle: true,
+        couponCode: appliedCoupon ? appliedCoupon.code : null
       });
 
       if (orderData.success) {
         // Initialize Razorpay checkout
         const options = {
           key: orderData.keyId,
-          amount: orderData.amount,
+          amount: orderData.amount, // Backend returned amount
           currency: orderData.currency,
           name: 'ThinkCyber',
-          description: `${category.name} - Bundle`,
+          description: `${selectedBundleCategory.name} - Bundle`,
           order_id: orderData.orderId,
           handler: async function (razorpayResponse) {
             try {
@@ -670,7 +693,8 @@ const TopicsList = () => {
                 razorpay_payment_id: razorpayResponse.razorpay_payment_id,
                 razorpay_signature: razorpayResponse.razorpay_signature,
                 userId: userData.id,
-                categoryId: category.id,
+                categoryId: selectedBundleCategory.id,
+                couponCode: appliedCoupon ? appliedCoupon.code : null
               });
 
               if (verifyData.success) {
@@ -919,7 +943,7 @@ const TopicsList = () => {
                       {isSelected && category.subcategories && category.subcategories.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-current border-opacity-20" onClick={(e) => e.stopPropagation()}>
                           <p className="text-xs font-semibold text-gray-700 mb-2">Subcategories:</p>
-                          <div className="space-y-1">
+                          <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar pr-2">
                             {category.subcategories.map((sub) => (
                               <label key={sub.id} className="flex items-center space-x-2 cursor-pointer p-1 hover:bg-white hover:bg-opacity-50 rounded">
                                 <input
@@ -1218,7 +1242,19 @@ const TopicsList = () => {
           )}
         </div>
       </div>
-    </div>
+      <CheckoutModal
+        isOpen={showCheckoutModal}
+        onClose={() => setShowCheckoutModal(false)}
+        itemData={selectedBundleCategory ? {
+          title: `${selectedBundleCategory.name} Bundle`,
+          price: selectedBundleCategory.bundle_price,
+          type: 'BUNDLE',
+          thumbnail: assets.courses_icon // Or generic bundle icon
+        } : null}
+        onProceed={handleCheckoutProceed}
+        currency={currency}
+      />
+    </div >
   );
 };
 
